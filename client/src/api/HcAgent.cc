@@ -181,3 +181,39 @@ auto HcAgentExecute(
 
     return response;
 }
+
+/*!
+ * @brief
+ *  register agent context menu action
+ *
+ * @param agent_type
+ *  agent type to add action to
+ *
+ * @param name
+ *  name of the action to register
+ *
+ * @param icon_path
+ *  icon path to add to action
+ *
+ * @param callback
+ *  python callback function
+ *  to call on action trigger
+ */
+auto HcAgentRegisterMenuAction(
+    const std::string&  agent_type,
+    const std::string&  name,
+    const std::string&  icon_path,
+    const py11::object& callback
+) -> void {
+    auto action = new HavocClient::ActionObject();
+
+    action->type       = HavocClient::ActionObject::ActionAgent;
+    action->name       = name;
+    action->icon       = icon_path;
+    action->callback   = callback;
+    action->agent.type = agent_type;
+
+    spdlog::debug( "HcAgentRegisterMenuAction( {}, {}, {} )", agent_type, name, icon_path );
+
+    Havoc->AddAction( action );
+}

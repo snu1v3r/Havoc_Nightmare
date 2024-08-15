@@ -54,6 +54,7 @@ set( HAVOC_INCLUDE
         include/api/HcCore.h
         include/api/HcScriptManager.h
         include/api/HcAgent.h
+        include/api/HcListener.h
 
         include/ui/HcConnectDialog.h
         include/ui/HcMainWindow.h
@@ -106,6 +107,7 @@ set( HAVOC_SRC
         src/api/HcCore.cc
         src/api/HcScriptManager.cc
         src/api/HcAgent.cc
+        src/api/HcListener.cc
 )
 
 find_package( OpenSSL REQUIRED )

@@ -10,6 +10,16 @@ def HcAgentRegisterInterface( type: str ):
 
     return _register
 
+def HcAgentRegisterMenuAction(
+    type        : str,
+    name        : str,
+    icon_path   : str  = "",
+):
+    def _register( function ):
+        agent.HcAgentRegisterMenuAction( type, name, icon_path, function )
+
+    return _register
+
 def HcAgentExport( interface ):
 
     globals()[ interface.__name__ ] = interface

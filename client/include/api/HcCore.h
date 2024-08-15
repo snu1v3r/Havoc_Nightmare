@@ -6,14 +6,10 @@ auto HcServerApiSend(
     const json&        data
 ) -> json;
 
-auto HcListenerProtocolData(
-    const std::string& protocol
-) -> json;
-
-auto HcListenerAll() -> std::vector<std::string>;
-
-auto HcListenerQueryType(
-    const std::string& name
-) -> std::string;
+auto HcRegisterMenuAction(
+    const std::string&  name,
+    const std::string&  icon_path,
+    const py11::object& callback
+) -> void;
 
 #endif //HAVOCCLIENT_API_HCCORE_H

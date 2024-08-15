@@ -613,3 +613,37 @@ auto HavocClient::SetupDirectory(
 
     return true;
 }
+
+auto HavocClient::AddAction(
+    ActionObject* action
+) -> void {
+    if ( ! action ) {
+        spdlog::debug( "[AddAction] action is a nullptr" );
+        return;
+    }
+
+    for ( auto _action : Actions( action->type ) ) {
+        if ( _action->name == action->name ) {
+            spdlog::debug( "[AddAction] action with the name \"{}\" and type already exists", action->name );
+            return;
+        }
+    }
+
+    actions.push_back( action );
+}
+
+auto HavocClient::Actions(
+    const ActionObject::ActionType& type
+) -> std::vector<ActionObject*> {
+    auto actions_type = std::vector<ActionObject*>();
+
+    for ( auto action : actions ) {
+        if ( action->type == type ) {
+            actions_type.push_back( action );
+        }
+    }
+
+    return actions_type;
+}
+
+HavocClient::ActionObject::ActionObject() {}

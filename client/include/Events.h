@@ -12,7 +12,7 @@ namespace Event {
     }
 
     namespace agent {
-        static std::string add        = "agent::register";
+        static std::string add        = "agent::register"; // this is for anonymous agents without any checkin data
         static std::string initialize = "agent::initialize";
         static std::string callback   = "agent::callback";
         static std::string console    = "agent::console";

@@ -15,3 +15,12 @@ def HcListenerAll() -> list[str]:
 
 def HcListenerQueryType( name: str ) -> str:
     return core.HcListenerQueryType( name )
+
+def HcRegisterMenuAction(
+    name: str,
+    icon_path: str = "",
+):
+    def _register( function ):
+        core.HcRegisterMenuAction( name, icon_path, function )
+
+    return _register

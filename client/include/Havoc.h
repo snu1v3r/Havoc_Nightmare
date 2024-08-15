@@ -36,6 +36,30 @@ class HavocClient : public QWidget {
         py11::object object;
     };
 
+public:
+    struct ActionObject {
+        ActionObject();
+
+        enum ActionType {
+            ActionHavoc,
+            ActionListener,
+            ActionAgent,
+        } type;
+
+        struct {
+            std::string type;
+        } agent;
+
+        struct {
+            std::string name;
+        } listener;
+
+        std::string  name;
+        std::string  icon;
+        py11::object callback;
+    };
+
+private:
     //
     // current connection info
     //
@@ -63,11 +87,12 @@ class HavocClient : public QWidget {
         HcHeartbeatWorker* Worker;
     } Heartbeat;
 
-    std::vector<json>         listeners  = {};
-    std::vector<NamedObject>  protocols  = {};
-    std::vector<NamedObject>  builders   = {};
-    std::vector<NamedObject>  agents     = {};
-    std::vector<NamedObject>  callbacks  = {};
+    std::vector<json>          listeners = {};
+    std::vector<NamedObject>   protocols = {};
+    std::vector<NamedObject>   builders  = {};
+    std::vector<NamedObject>   agents    = {};
+    std::vector<NamedObject>   callbacks = {};
+    std::vector<ActionObject*> actions   = {};
 
     QDir client_dir = {};
 
@@ -177,6 +202,7 @@ public:
     //
     // Agent api
     //
+
     auto Agent(
         const std::string& uuid
     ) const -> std::optional<HcAgent*>;
@@ -191,6 +217,18 @@ public:
     auto AgentObject(
         const std::string& type
     ) -> std::optional<py11::object>;
+
+    //
+    // Menu actions
+    //
+
+    auto AddAction(
+        ActionObject* action
+    ) -> void;
+
+    auto Actions(
+        const ActionObject::ActionType& type
+    ) -> std::vector<ActionObject*>;
 
     //
     // Server Api

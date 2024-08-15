@@ -6,6 +6,7 @@
 #include <api/HcCore.h>
 #include <api/HcScriptManager.h>
 #include <api/HcAgent.h>
+#include <api/HcListener.h>
 
 inline auto HcPythonReleaseGil() -> void {
     //

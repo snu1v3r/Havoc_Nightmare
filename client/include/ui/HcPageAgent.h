@@ -115,6 +115,10 @@ public:
     auto actionPayloadBuilder(
         bool checked
     ) -> void;
+
+    auto actionTriggered(
+        QAction* triggered
+    ) -> void;
 };
 
 QT_END_NAMESPACE

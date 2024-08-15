@@ -21,40 +21,24 @@ auto HcServerApiSend(
     };
 }
 
-auto HcListenerProtocolData(
-    const std::string& protocol
-) -> json {
+auto HcRegisterMenuAction(
+    const std::string&  name,
+    const std::string&  icon_path,
+    const py11::object& callback
+) -> void {
+    auto action = new HavocClient::ActionObject();
 
-    for ( auto& p : Havoc->Gui->PageListener->Protocols ) {
-        if ( p.contains( "data" ) ) {
-            if ( p[ "data" ].contains( "protocol" ) ) {
-                if ( p[ "data" ][ "protocol" ] == protocol ) {
-                    if ( p[ "data" ].contains( "data" ) ) {
-                        return p[ "data" ][ "data" ];
-                    }
-                }
-            }
-        }
+    action->type = HavocClient::ActionObject::ActionHavoc;
+    action->name = name;
+    action->icon = icon_path;
+    action->callback = callback;
+
+    Havoc->AddAction( action );
+
+    if ( icon_path.empty() ) {
+        Havoc->Gui->PageAgent->AgentActionMenu->addAction( name.c_str() );
+    } else {
+        spdlog::debug( "with icon: {}", icon_path );
+        Havoc->Gui->PageAgent->AgentActionMenu->addAction( QIcon( icon_path.c_str() ), name.c_str() );
     }
-
-    return {};
-}
-
-auto HcListenerAll() -> std::vector<std::string>
-{
-    return Havoc->Listeners();
-}
-
-auto HcListenerQueryType(
-    const std::string& name
-) -> std::string {
-    for ( auto& n : Havoc->Listeners() ) {
-        if ( auto obj = Havoc->ListenerObject( n ) ) {
-            if ( obj.has_value() && obj.value()[ "name" ] == name ) {
-                return obj.value()[ "protocol" ].get<std::string>();
-            }
-        }
-    }
-
-    return std::string();
 }

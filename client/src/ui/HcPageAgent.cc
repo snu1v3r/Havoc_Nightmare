@@ -94,8 +94,8 @@ HcPageAgent::HcPageAgent(
     horizontalSpacer = new QSpacerItem( 40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum );
     AgentActionMenu  = new QMenu( this );
 
-    ActionPayload    = AgentActionMenu->addAction( "Payload Builder" );
-    ActionShowHidden = AgentActionMenu->addAction( "Show Hidden" );
+    ActionPayload    = AgentActionMenu->addAction( QIcon( ":/icons/16px-payload-build" ), "Payload Builder" );
+    ActionShowHidden = AgentActionMenu->addAction( QIcon( ":/icons/32px-eye-white" ), "Show Hidden" );
     ActionShowHidden->setCheckable( true );
 
     AgentActionButton = new QToolButton( this );
@@ -113,12 +113,13 @@ HcPageAgent::HcPageAgent(
     Splitter->addWidget( AgentTab );
     Splitter->handle( 1 )->setEnabled( SplitterMoveToggle ); /* disabled by default */
 
-    QObject::connect( AgentTable,       &QTableWidget::customContextMenuRequested, this, &HcPageAgent::handleAgentMenu );
-    QObject::connect( AgentTable,       &QTableWidget::doubleClicked, this, &HcPageAgent::handleAgentDoubleClick );
-    QObject::connect( AgentTab,         &QTabWidget::tabCloseRequested, this, &HcPageAgent::tabCloseRequested );
-    QObject::connect( ActionPayload,    &QAction::triggered, this, &HcPageAgent::actionPayloadBuilder );
-    QObject::connect( ActionShowHidden, &QAction::triggered, this, &HcPageAgent::actionShowHidden );
-    QObject::connect( AgentTable,       &QTableWidget::itemChanged, this, &HcPageAgent::itemChanged );
+    QObject::connect( AgentTable,        &QTableWidget::customContextMenuRequested, this, &HcPageAgent::handleAgentMenu );
+    QObject::connect( AgentTable,        &QTableWidget::doubleClicked, this, &HcPageAgent::handleAgentDoubleClick );
+    QObject::connect( AgentTab,          &QTabWidget::tabCloseRequested, this, &HcPageAgent::tabCloseRequested );
+    QObject::connect( ActionPayload,     &QAction::triggered, this, &HcPageAgent::actionPayloadBuilder );
+    QObject::connect( ActionShowHidden,  &QAction::triggered, this, &HcPageAgent::actionShowHidden );
+    QObject::connect( AgentActionButton, &QToolButton::triggered, this, &HcPageAgent::actionTriggered );
+    QObject::connect( AgentTable,        &QTableWidget::itemChanged, this, &HcPageAgent::itemChanged );
 
     gridLayout->addWidget( ComboAgentView,         0, 0, 1, 1 );
     gridLayout->addWidget( Splitter,               1, 0, 1, 7 );
@@ -294,9 +295,11 @@ auto HcPageAgent::addAgent(
 auto HcPageAgent::handleAgentMenu(
     const QPoint& pos
 ) -> void {
-    auto menu       = QMenu( this );
-    auto uuid       = std::string();
-    auto selections = AgentTable->selectionModel()->selectedRows();
+    auto menu          = QMenu( this );
+    auto uuid          = std::string();
+    auto selections    = AgentTable->selectionModel()->selectedRows();
+    auto type          = std::string();
+    auto agent_actions = Havoc->Actions( HavocClient::ActionObject::ActionAgent );
 
     /* check if we point to a session table item/agent */
     if ( ! AgentTable->itemAt( pos ) ) {
@@ -304,9 +307,20 @@ auto HcPageAgent::handleAgentMenu(
     }
 
     if ( selections.count() > 1 ) {
+        //
+        // for now we dont allow custom actions for multiple sessions
+        // as we have to take the following things into consideration:
+        //  - agent type
+        //  - add action to the menu while other agent types are selected as well
+        //  - check every selected row for agent type and add only the selected action etc.
+        //
+        // TODO: while this is surely possible i am going
+        //       to move this into the future to implement.
+        //
         menu.addAction( QIcon( ":/icons/16px-agent-console" ), "Interact" );
         menu.addSeparator();
-        menu.addAction( QIcon( ":/icons/16px-remove"  ), "Remove"  );
+        menu.addAction( QIcon( ":/icons/16px-blind-white" ), "Hide" );
+        menu.addAction( QIcon( ":/icons/16px-remove" ), "Remove" );
     } else {
         //
         // if a single selected agent item then try
@@ -314,7 +328,32 @@ auto HcPageAgent::handleAgentMenu(
         //
         menu.addAction( QIcon( ":/icons/16px-agent-console" ), "Interact" );
         menu.addSeparator();
-        menu.addAction( QIcon( ":/icons/16px-remove"  ), "Remove"  );
+
+        //
+        // add the registered agent type actions
+        //
+        uuid = AgentTable->item( selections.at( 0 ).row(), 0 )->text().toStdString();
+
+        for ( auto& agent : agents ) {
+            if ( agent->uuid == uuid ) {
+                type = agent->type;
+                break;
+            }
+        }
+
+        for ( auto action : agent_actions ) {
+            if ( action->agent.type == type ) {
+                if ( action->icon.empty() ) {
+                    menu.addAction( action->name.c_str() );
+                } else {
+                    menu.addAction( QIcon( action->icon.c_str() ), action->name.c_str() );
+                }
+            }
+        }
+
+        menu.addSeparator();
+        menu.addAction( QIcon( ":/icons/16px-blind-white" ), "Hide" );
+        menu.addAction( QIcon( ":/icons/16px-remove" ), "Remove" );
     }
 
     if ( auto action = menu.exec( AgentTable->horizontalHeader()->viewport()->mapToGlobal( pos ) ) ) {
@@ -326,6 +365,25 @@ auto HcPageAgent::handleAgentMenu(
             } else if ( action->text().compare( "Remove" ) == 0 ) {
 
             } else {
+                for ( auto agent_action : agent_actions ) {
+                    if ( agent_action->name       == action->text().toStdString() &&
+                         agent_action->agent.type == type
+                    ) {
+                        auto agent = Havoc->Agent( uuid );
+
+                        if ( agent.has_value() && agent.value()->interface.has_value() ) {
+                            try {
+                                py11::gil_scoped_acquire gil;
+
+                                agent_action->callback( agent.value()->interface.value() );
+                            } catch ( py11::error_already_set& e ) {
+                                spdlog::error( "failed to execute action callback: {}", e.what() );
+                            }
+                        }
+                        return;
+                    }
+                }
+
                 spdlog::debug( "[ERROR] invalid action from selected agent menu" );
             }
         }
@@ -462,6 +520,25 @@ auto HcPageAgent::itemChanged(
 
         spdlog::debug( "result->status: {}", result->status );
         spdlog::debug( "result->body  : {}", result->body );
+    }
+}
+
+auto HcPageAgent::actionTriggered(
+    QAction* triggered
+) -> void {
+    for ( auto action : Havoc->Actions( HavocClient::ActionObject::ActionHavoc ) ) {
+        if ( action->name == triggered->text().toStdString() ) {
+
+            try {
+                py11::gil_scoped_acquire gil;
+
+                action->callback();
+            } catch ( py11::error_already_set& e ) {
+                spdlog::error( "failed to execute action callback: {}", e.what() );
+            }
+
+            break;
+        }
     }
 }
 

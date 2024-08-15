@@ -39,4 +39,11 @@ auto HcAgentExecute(
     const bool         wait
 ) -> json;
 
+auto HcAgentRegisterMenuAction(
+    const std::string&  agent_type,
+    const std::string&  name,
+    const std::string&  icon_path,
+    const py11::object& callback
+) -> void;
+
 #endif //HAVOCCLIENT_API_HCAGENT_H

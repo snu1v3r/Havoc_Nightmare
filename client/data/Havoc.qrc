@@ -4,9 +4,6 @@
 
         <file alias="havoc-white">../data/icons/havoc.png</file>
 
-        <file alias="32px-nocturn">../data/icons/32px-nocturn.png</file>
-        <file alias="32px-nocturn-white">../data/icons/32px-nocturn-white.png</file>
-
         <file alias="tab-close-button">../data/icons/close-icon.png</file>
 
         <file alias="16px-question-mark">../data/icons/16px-question-mark.png</file>
@@ -29,6 +26,7 @@
 
         <file alias="16px-eye">../data/icons/16px-eye.png</file>
         <file alias="16px-eye-white">../data/icons/16px-eye-white.png</file>
+        <file alias="32px-eye-white">../data/icons/32px-eye-white.png</file>
 
         <file alias="16px-add">../data/icons/16px-add.png</file>
         <file alias="16px-add-white">../data/icons/16px-add-white.png</file>
@@ -45,18 +43,16 @@
         <file alias="32px-script">../data/icons/32px-script.png</file>
         <file alias="32px-script-white">../data/icons/32px-script-white.png</file>
 
-        <file alias="32px-payload">../data/icons/32px-mine.png</file>
-        <file alias="32px-payload-white">../data/icons/32px-mine-white.png</file>
-
         <file alias="32px-listener">../data/icons/32px-satellite.png</file>
         <file alias="32px-listener-white">../data/icons/32px-satellite-white.png</file>
+
+        <file alias="16px-payload-build">../data/icons/16px-cube-white.png</file>
 
         <file alias="16px-listener-start">../data/icons/16px-play.png</file>
         <file alias="16px-listener-logs">../data/icons/16px-file-list-white.png</file>
         <file alias="16px-listener-restart">../data/icons/16px-restart.png</file>
         <file alias="16px-listener-stop">../data/icons/16px-pause.png</file>
         <file alias="16px-listener-edit">../data/icons/16px-edit.png</file>
-
 
         <file alias="16px-agent-console">../data/icons/16px-console.png</file>
         <file alias="32px-agent-console">../data/icons/32px-console.png</file>

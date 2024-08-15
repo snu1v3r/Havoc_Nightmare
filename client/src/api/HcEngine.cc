@@ -28,6 +28,11 @@ PYBIND11_EMBEDDED_MODULE( _pyhavoc, m ) {
         core.def( "HcServerApiSend", HcServerApiSend, py::call_guard<py::gil_scoped_release>() );
 
         //
+        // Havoc core apis
+        //
+        core.def( "HcRegisterMenuAction", HcRegisterMenuAction );
+
+        //
         // Havoc Listener api functions
         //
         core.def( "HcListenerProtocolData", HcListenerProtocolData );
@@ -135,6 +140,7 @@ PYBIND11_EMBEDDED_MODULE( _pyhavoc, m ) {
         agent.def( "HcAgentConsoleWrite",       HcAgentConsoleWrite, py::call_guard<py::gil_scoped_release>() );
         agent.def( "HcAgentConsoleInput",       []( const py11::object& eval ) { Havoc->Python.Engine->PyEval = eval; } );
         agent.def( "HcAgentExecute",            HcAgentExecute, py::call_guard<py::gil_scoped_release>() );
+        agent.def( "HcAgentRegisterMenuAction", HcAgentRegisterMenuAction );
     }
 }
 
