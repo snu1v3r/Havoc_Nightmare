@@ -5,9 +5,10 @@
 #include <QtWidgets/QGridLayout>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QWidget>
-#include <QMetaMethod>
 
-HcListenerDialog::HcListenerDialog() {
+HcListenerDialog::HcListenerDialog(
+    const QString& editing
+) {
     if ( objectName().isEmpty() ) {
         setObjectName( QString::fromUtf8( "HcListenerDialog" ) );
     }
@@ -64,7 +65,12 @@ HcListenerDialog::HcListenerDialog() {
 
     for ( auto& name : Havoc->Protocols() ) {
         if ( Havoc->ProtocolObject( name ).has_value() ) {
-            AddProtocol( name, Havoc->ProtocolObject( name ).value() );
+            if ( editing.isEmpty() ) {
+                AddProtocol( name, Havoc->ProtocolObject( name ).value() );
+            } else if ( editing.toStdString() == name ) {
+                AddProtocol( name, Havoc->ProtocolObject( name ).value() );
+                break;
+            }
         }
     }
 
@@ -111,9 +117,10 @@ auto HcListenerDialog::start() -> void {
 }
 
 auto HcListenerDialog::save() -> void {
-    auto Result = httplib::Result();
-    auto data   = json();
-    auto found  = false;
+    auto result    = httplib::Result();
+    auto data      = json();
+    auto found     = false;
+    auto exception = std::string();
 
     if ( InputName->text().isEmpty() ) {
         Helper::MessageBox(
@@ -123,94 +130,86 @@ auto HcListenerDialog::save() -> void {
         );
     }
 
-    for ( auto & protocol : Protocols ) {
-        if ( ComboProtocol->Combo->currentText().toStdString() == protocol.name ) {
-            auto exception = std::string();
+    auto protocol = getCurrentProtocol();
+    try {
+        py11::gil_scoped_acquire gil;
 
-            try {
-                py11::gil_scoped_acquire gil;
-
-                /* sanity check input */
-                if ( ! protocol.instance.attr( "sanity_check" )().cast<bool>() ) {
-                    /* sanity check failed. exit and dont send request */
-                    spdlog::debug( "sanity check failed. exit and dont send request" );
-                    return;
-                }
-
-                data[ "name" ]     = InputName->text().toStdString();
-                data[ "protocol" ] = protocol.name;
-                data[ "data" ]     = protocol.instance.attr( "save" )();
-            } catch ( py11::error_already_set &eas ) {
-                Helper::MessageBox(
-                    QMessageBox::Icon::Critical,
-                    "Listener saving error",
-                    std::string( eas.what() )
-                );
-                return;
-            }
-
-            found = true;
-            break;
+        /* sanity check input */
+        if ( ! protocol.instance.attr( "sanity_check" )().cast<bool>() ) {
+            /* sanity check failed. exit and dont send request */
+            spdlog::debug( "sanity check failed. exit and dont send request" );
+            return;
         }
-    }
 
-    if ( ! found ) {
+        data = {
+            { "name",     InputName->text().toStdString() },
+            { "protocol", protocol.name },
+            { "data",     protocol.instance.attr( "save" )() }
+        };
+    } catch ( py11::error_already_set &eas ) {
         Helper::MessageBox(
-            QMessageBox::Critical,
-            "Listener failure",
-            "Failed to start listener: protocol not found"
+            QMessageBox::Icon::Critical,
+            "Listener saving error",
+            std::string( eas.what() )
         );
-        close();
         return;
     }
 
     State = Error;
 
-    if ( ( Result = Havoc->ApiSend( "/api/listener/start", data ) ) ) {
-        if ( Result->status != 200 ) {
-            if ( ! Result->body.empty() ) {
-                if ( ( data = json::parse( Result->body ) ).is_discarded() ) {
-                    goto ERROR_SERVER_RESPONSE;
-                }
+    if ( edited_config.empty() ) {
+        result = Havoc->ApiSend( "/api/listener/start", data );
+    } else {
+        result = Havoc->ApiSend( "/api/listener/edit", data );
+    }
 
-                if ( ! data.contains( "error" ) ) {
-                    goto ERROR_SERVER_RESPONSE;
-                }
+    if ( result->status != 200 ) {
+        if ( result->body.empty() ) {
+            goto ERROR_SERVER_RESPONSE;
+        }
 
-                if ( ! data[ "error" ].is_string() ) {
-                    goto ERROR_SERVER_RESPONSE;
-                }
-
-                Helper::MessageBox(
-                    QMessageBox::Critical,
-                    "Listener failure",
-                    QString( "Failed to start listener: %1" ).arg( data[ "error" ].get<std::string>().c_str() ).toStdString()
-                );
-
-                State = Error;
-                close();
-                return;
-            } else {
+        try {
+            if ( ( data = json::parse( result->body ) ).is_discarded() ) {
                 goto ERROR_SERVER_RESPONSE;
             }
-        } else {
-            State = Saved;
-            close();
-            return;
+        } catch ( std::exception& e ) {
+            spdlog::error( "failed to parse json response: \n{}", e.what() );
+            goto ERROR_SERVER_RESPONSE;
         }
+
+        if ( ! data.contains( "error" ) ) {
+            goto ERROR_SERVER_RESPONSE;
+        }
+
+        if ( ! data[ "error" ].is_string() ) {
+            goto ERROR_SERVER_RESPONSE;
+        }
+
+        Helper::MessageBox(
+            QMessageBox::Critical,
+            "Listener failure",
+            QString( "failed to start listener: %1" ).arg( data[ "error" ].get<std::string>().c_str() ).toStdString()
+        );
+
+        State = Error;
+    } else {
+        State = Saved;
     }
+
+    close();
+    return;
 
 ERROR_SERVER_RESPONSE:
     Helper::MessageBox(
         QMessageBox::Critical,
         "Listener failure",
-        "Failed to start listener: Invalid response from the server"
+        "listener failure: Invalid response from the server"
     );
 
     close();
 }
 
-auto HcListenerDialog::getCurrentProtocol() -> Protocol* { return & Protocols[ StackedProtocols->currentIndex() ]; }
+auto HcListenerDialog::getCurrentProtocol() -> Protocol { return Protocols[ StackedProtocols->currentIndex() ]; }
 
 auto HcListenerDialog::AddProtocol(
     const std::string&  name,
@@ -239,4 +238,29 @@ auto HcListenerDialog::AddProtocol(
     StackedProtocols->addWidget( protocol.widget );
 
     Protocols.push_back( protocol );
+}
+
+auto HcListenerDialog::setEditingListener(
+    const QString& name,
+    const json&    config
+) -> void {
+
+    InputName->setInputText( name );
+    ComboProtocol->Combo->setDisabled( true );
+    InputName->Input->setDisabled( true );
+
+    edited_config = config;
+
+    try {
+        py11::gil_scoped_acquire gil;
+
+        getCurrentProtocol().instance.attr( "edit" )( config );
+    } catch ( py11::error_already_set& e ) {
+        spdlog::debug( "failed to execute edit method of listener: \n{}", e.what() );
+        Helper::MessageBox(
+            QMessageBox::Icon::Critical,
+            "Listener editing error",
+            std::string( e.what() )
+        );
+    }
 }

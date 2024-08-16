@@ -150,7 +150,7 @@ HcPageListener::HcPageListener() {
 }
 
 auto HcPageListener::retranslateUi() -> void {
-    setStyleSheet( Havoc->StyleSheet() );
+    setStyleSheet( HavocClient::StyleSheet() );
 
     setWindowTitle( "PageListener" );
     ActiveLabel->setText( "Listeners: 0" );
@@ -383,7 +383,6 @@ auto HcPageListener::handleListenerContextMenu(
     }
 
     if ( selections.count() > 1 ) {
-        spdlog::debug( "1" );
         menu.addAction( QIcon( ":/icons/16px-listener-start" ), "Start" );
         menu.addAction( QIcon( ":/icons/16px-listener-stop" ), "Stop" );
         menu.addAction( QIcon( ":/icons/16px-listener-restart" ), "Restart" );
@@ -434,7 +433,7 @@ auto HcPageListener::handleListenerContextMenu(
                     Splitter->handle( 1 )->setCursor( Qt::SplitVCursor );
                 }
 
-                TabWidget->addTab( listener.value()->Logger, "[Logger] " + name );
+                TabWidget->addTab( listener.value()->Logger, QIcon( ":/icons/16px-listener-logs" ), name );
             }
             else if ( action->text().compare( "Start" ) == 0 ) {
                 auto error = listener.value()->start();
@@ -698,5 +697,68 @@ ERROR_SERVER_RESPONSE:
 
 auto HcListener::edit() -> std::optional<std::string>
 {
+    auto result   = httplib::Result();
+    auto error    = std::string();
+    auto data     = json();
+    auto listener = new HcListenerDialog( protocol.c_str() );
+
+    //
+    // first we have to get the
+    // config from the listener
+    //
+
+    result = Havoc->ApiSend( "/api/listener/config", {
+        { "name", name }
+    } );
+
+    if ( result->status != 200 ) {
+        if ( result->body.empty() ) {
+            goto ERROR_SERVER_RESPONSE;
+        }
+
+        try {
+            if ( ( data = json::parse( result->body ) ).is_discarded() ) {
+                goto ERROR_SERVER_RESPONSE;
+            }
+        } catch ( std::exception& e ) {
+            spdlog::error( "failed to parse json: {}", e.what() );
+            goto ERROR_SERVER_RESPONSE;
+        }
+
+        if ( ! data.contains( "error" ) ) {
+            goto ERROR_SERVER_RESPONSE;
+        }
+
+        if ( ! data[ "error" ].is_string() ) {
+            goto ERROR_SERVER_RESPONSE;
+        }
+
+        return data[ "error" ].get<std::string>();
+    } else {
+        try {
+            if ( ( data = json::parse( result->body ) ).is_discarded() ) {
+                goto ERROR_SERVER_RESPONSE;
+            }
+        } catch ( std::exception& e ) {
+            spdlog::error( "failed to parse json: {}", e.what() );
+            goto ERROR_SERVER_RESPONSE;
+        }
+    }
+
+    //
+    // generate the UI listener and allow
+    // the listener to be edited
+    //
+
+    listener->setEditingListener( name.c_str(), data );
+    listener->start();
+
+    if ( listener->getCloseState() != Closed ) {
+        delete listener;
+    }
+
     return {};
+
+ERROR_SERVER_RESPONSE:
+    return std::optional<std::string>( "invalid response from the server" );
 }

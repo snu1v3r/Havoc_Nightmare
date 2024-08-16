@@ -33,6 +33,7 @@ enum ListenerState {
 class HcListenerDialog : public QDialog
 {
     ListenerState   State            = None;
+    json            edited_config    = {};
 
 public:
     QGridLayout*    gridLayout       = nullptr;
@@ -45,11 +46,18 @@ public:
 
     std::vector<Protocol> Protocols  = {};
 
-    explicit HcListenerDialog();
+    explicit HcListenerDialog(
+        const QString& editing = ""
+    );
 
-    auto getCurrentProtocol() -> Protocol*;
+    auto getCurrentProtocol() -> Protocol;
     auto getCloseState() -> ListenerState;
     auto save() -> void;
+
+    auto setEditingListener(
+        const QString& name,
+        const json&    config
+    ) -> void;
 
     auto changeProtocol(
         const QString& text

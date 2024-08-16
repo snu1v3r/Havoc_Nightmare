@@ -114,6 +114,12 @@ class HcListenerView:
         pass
 
     ##
+    ## method invoked once the operator wants to edit the listener
+    ##
+    def edit( self, config: dict ):
+        pass
+
+    ##
     ## sanity check the given input
     ## return:
     ##  true  -> successful checked the input and nothing is wrong
