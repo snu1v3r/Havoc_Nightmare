@@ -129,7 +129,7 @@ auto HcDialogBuilder::AddBuilder(
     py11::gil_scoped_acquire gil;
 
     try {
-        builder.instance = object( name );
+        builder.instance = object( U_PTR( builder.widget ), U_PTR( this ), name );
         builder.instance.attr( "_hc_main" )();
     } catch ( py11::error_already_set &eas ) {
         Helper::MessageBox(

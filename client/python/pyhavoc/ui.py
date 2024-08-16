@@ -1,8 +1,10 @@
 ##
 ## import havoc specific libs
 ##
+import shiboken6
 from _pyhavoc import core
 from _pyhavoc import ui
+import ctypes
 
 ##
 ## import qt ui library
@@ -12,49 +14,30 @@ from PySide6.QtCore import *
 from PySide6.QtGui import *
 from PySide6.QtWidgets import *
 
-def HcUiGetWidgetByObjectName(
-    object_name: str
-) -> QWidget:
+from shiboken6 import Shiboken
 
-    for widget in QApplication.instance().allWidgets():
-        if str( widget.objectName() ) == object_name:
-            return widget
-
-    return None
 
 class HcPayloadView:
 
-    def __init__( self, name: str ):
-        self._hc_name = name
-
-    ##
-    ## get our builder widget
-    ##
-    def _hc_builder_widget( self ) -> QWidget:
-
-        widget = HcUiGetWidgetByObjectName( "HcPageBuilderBuilder" + self._hc_name )
-
-        if widget is None:
-            raise "HcPageBuilder builder widget not found: " + "HcPageBuilderBuilder" + self._hc_name
-
-        return widget
+    def __init__(
+        self,
+        builder_widget: ctypes.c_size_t,
+        builder_dialog: ctypes.c_size_t,
+        builder_name  : str
+    ):
+        self._builder_widget: QWidget = Shiboken.wrapInstance( builder_widget, QWidget )
+        self._builder_dialog: QDialog = Shiboken.wrapInstance( builder_dialog, QDialog )
+        self._builder_name  : str     = builder_name
 
     ##
     ## main entrypoint what the
     ## Havoc client is going to call
     ##
     def _hc_main( self ) -> None:
-        self.main( self._hc_builder_widget() )
+        self.main( self._builder_widget )
 
     def set_builder_size( self, width, height ):
-
-        widget = HcUiGetWidgetByObjectName( "HcPageBuilder" )
-
-        if widget is None:
-            raise "HcPageBuilder builder widget not found"
-
-        widget.resize( width, height )
-
+        return self._builder_dialog.resize( width, height )
 
     ##
     ## main function to be executed
@@ -92,48 +75,42 @@ class HcPayloadView:
     def profile_save( self ) -> dict:
         pass
 
+
 class HcListenerView:
 
-    def __init__( self ):
-        self._hc_name: str = None
+    def __init__(
+        self,
+        listener_widget: ctypes.c_size_t,
+        listener_name  : str
+    ):
+        self._listener_widget : QWidget = Shiboken.wrapInstance( listener_widget, QWidget )
+        self._listener_name   : str     = listener_name
 
     ##
     ## main entrypoint what the
     ## Havoc client is going to call
     ##
     def _hc_main( self ):
-        self.main()
-
-    ##
-    ## set the protocol name
-    ##
-    def _hc_set_name( self, name: str ):
-        self._hc_name = name
+        self.main( self.listener_widget() )
 
     ##
     ## return given listener protocol name
     ##
     def listener_name( self ) -> str:
-        return self._hc_name
+        return self._listener_name
 
     ##
     ## get our protocol widget
     ##
     def listener_widget( self ) -> QWidget:
-
-        widget = HcUiGetWidgetByObjectName( "HcListenerDialog.Protocol." + self._hc_name )
-
-        if widget is None:
-            raise "HcListenerDialog protocol widget not found: " + "HcListenerDialog.Protocol." + self._hc_name
-
-        return widget
+        return self._listener_widget
 
     ##
     ## main function to be executed
     ## should create the widgets inputs
     ## for the listener
     ##
-    def main( self ):
+    def main( self, widget: QWidget ):
         pass
 
     ##

@@ -16,4 +16,11 @@ auto HcListenerQueryType(
     const std::string& name
 ) -> std::string;
 
+auto HcListenerRegisterMenuAction(
+    const std::string&  type,
+    const std::string&  name,
+    const std::string&  icon,
+    const py11::object& callback
+) -> void;
+
 #endif //HAVOCCLIENT_HCLISTENER_H

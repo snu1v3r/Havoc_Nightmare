@@ -223,11 +223,8 @@ auto HcListenerDialog::AddProtocol(
         .widget = new QWidget
     };
 
-    protocol.widget->setObjectName( "HcListenerDialog.Protocol." + QString( name.c_str() ) );
-
     try {
-        protocol.instance = object();
-        protocol.instance.attr( "_hc_set_name" )( name );
+        protocol.instance = object( U_PTR( protocol.widget ), name );
         protocol.instance.attr( "_hc_main" )();
     } catch ( py11::error_already_set &eas ) {
         Helper::MessageBox(

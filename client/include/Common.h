@@ -42,4 +42,7 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
+typedef void*  C_PTR;
+typedef size_t U_PTR;
+
 #endif //HAVOCCLIENT_COMMON_H

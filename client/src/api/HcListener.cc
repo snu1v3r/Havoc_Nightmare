@@ -40,3 +40,20 @@ auto HcListenerQueryType(
 
     return std::string();
 }
+
+auto HcListenerRegisterMenuAction(
+    const std::string&  type,
+    const std::string&  name,
+    const std::string&  icon,
+    const py11::object& callback
+) -> void {
+    auto action = new HavocClient::ActionObject();
+
+    action->type          = HavocClient::ActionObject::ActionListener;
+    action->name          = name;
+    action->icon          = icon;
+    action->callback      = callback;
+    action->listener.type = type;
+
+    Havoc->AddAction( action );
+}

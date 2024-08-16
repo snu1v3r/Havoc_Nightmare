@@ -51,7 +51,7 @@ public:
         } agent;
 
         struct {
-            std::string name;
+            std::string type;
         } listener;
 
         std::string  name;
