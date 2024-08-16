@@ -23,11 +23,10 @@ def HcListenerQueryType( name: str ) -> str:
 def HcListenerRegisterMenuAction(
     type: str,
     name: str,
-    callback,
-    icon: str = ""
+    icon: str = "",
 ):
     def _register( function ):
-        core.HcListenerRegisterMenuAction( type, name, callback, icon )
+        core.HcListenerRegisterMenuAction( type, name, icon, function )
 
     return _register
 

@@ -374,13 +374,16 @@ auto HcPageListener::handleListenerContextMenu(
 ) -> void {
     auto menu       = QMenu( this );
     auto name       = QString();
+    auto type       = std::string();
     auto selections = TableWidget->selectionModel()->selectedRows();
+    auto actions    = Havoc->Actions( HavocClient::ActionObject::ActionListener );
 
     if ( ! TableWidget->itemAt( pos ) ) {
         return;
     }
 
     if ( selections.count() > 1 ) {
+        spdlog::debug( "1" );
         menu.addAction( QIcon( ":/icons/16px-listener-start" ), "Start" );
         menu.addAction( QIcon( ":/icons/16px-listener-stop" ), "Stop" );
         menu.addAction( QIcon( ":/icons/16px-listener-restart" ), "Restart" );
@@ -392,6 +395,21 @@ auto HcPageListener::handleListenerContextMenu(
         menu.addAction( QIcon( ":/icons/16px-listener-start" ), "Start" );
         menu.addAction( QIcon( ":/icons/16px-listener-stop" ), "Stop" );
         menu.addAction( QIcon( ":/icons/16px-listener-restart" ), "Restart" );
+        menu.addSeparator();
+
+        type = ( ( HcListenerItem* ) TableWidget->cellWidget( selections.at( 0 ).row(), 1 ) )->LabelStatus->text().toStdString();
+
+        for ( auto action : actions ) {
+            spdlog::debug( "action->listener: {} == {}", action->listener.type, type );
+            if ( action->listener.type == type ) {
+                if ( action->icon.empty() ) {
+                    menu.addAction( action->name.c_str() );
+                } else {
+                    menu.addAction( QIcon( action->icon.c_str() ), action->name.c_str() );
+                }
+            }
+        }
+
         menu.addSeparator();
         menu.addAction( QIcon( ":/icons/16px-listener-edit" ), "Edit" );
         menu.addAction( QIcon( ":/icons/16px-listener-logs" ), "Logs" );
@@ -484,6 +502,21 @@ auto HcPageListener::handleListenerContextMenu(
                 }
             }
             else {
+                for ( auto listener_action : actions ) {
+                    if ( action->text().toStdString()   == listener_action->name &&
+                         listener_action->listener.type == type
+                    ) {
+                        try {
+                            py11::gil_scoped_acquire gil;
+
+                            listener_action->callback( name.toStdString() );
+                        } catch ( py11::error_already_set& e ) {
+                            spdlog::error( "failed to execute action callback: {}", e.what() );
+                        }
+                        return;
+                    }
+                }
+
                 spdlog::debug( "[ERROR] invalid action from selected listener menu" );
             }
         }

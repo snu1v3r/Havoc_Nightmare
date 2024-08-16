@@ -7,17 +7,23 @@ auto HcServerApiSend(
     const json&        data
 ) -> json {
     auto result = httplib::Result();
+    auto body   = json();
 
     result = Havoc->ApiSend(
         endpoint,
         data
     );
 
+    try {
+        body = json::parse( result->body );
+    } catch ( std::exception& e ) {
+        spdlog::error( "error while parsing body response from {}:\n{}", endpoint, e.what() );
+    }
+
     return json {
-        { "version", result->version },
         { "status",  result->status  },
         { "reason",  result->reason  },
-        { "body",    result->body    },
+        { "body",    body },
     };
 }
 
@@ -38,7 +44,6 @@ auto HcRegisterMenuAction(
     if ( icon_path.empty() ) {
         Havoc->Gui->PageAgent->AgentActionMenu->addAction( name.c_str() );
     } else {
-        spdlog::debug( "with icon: {}", icon_path );
         Havoc->Gui->PageAgent->AgentActionMenu->addAction( QIcon( icon_path.c_str() ), name.c_str() );
     }
 }
