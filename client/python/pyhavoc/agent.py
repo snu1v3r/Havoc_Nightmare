@@ -1,6 +1,5 @@
 from _pyhavoc import agent
-import threading
-import time
+
 
 def HcAgentRegisterInterface( type: str ):
 
@@ -9,6 +8,7 @@ def HcAgentRegisterInterface( type: str ):
         globals()[ interface.__name__ ] = interface
 
     return _register
+
 
 def HcAgentRegisterMenuAction(
     type        : str,
@@ -20,23 +20,29 @@ def HcAgentRegisterMenuAction(
 
     return _register
 
+
 def HcAgentExport( interface ):
 
     globals()[ interface.__name__ ] = interface
 
     return interface
 
+
 def HcAgentConsoleHeader( uuid: str, header: str ):
     agent.HcAgentConsoleHeader( uuid, header )
+
 
 def HcAgentConsoleLabel( uuid: str, content: str ):
     agent.HcAgentConsoleLabel( uuid, content )
 
+
 def HcAgentRegisterCallback( uuid, callback ):
     agent.HcAgentRegisterCallback( uuid, callback )
 
+
 def HcAgentUnRegisterCallback( callback ):
     agent.HcAgentUnRegisterCallback( callback )
+
 
 def HcAgentExecute(
     uuid: str,
@@ -44,6 +50,7 @@ def HcAgentExecute(
     wait: bool = False
 ) -> dict:
     return agent.HcAgentExecute( uuid, data, wait )
+
 
 class HcAgent:
     def __init__( self, uuid: str = "", type: str = "", meta: dict = {} ):

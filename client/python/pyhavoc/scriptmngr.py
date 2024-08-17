@@ -4,12 +4,14 @@ import os
 import sys
 import importlib.util
 
+
 class HcPyScriptMngrStdOutErrHandler:
     def __init__( self ):
         return
 
     def write( self, data ):
         core.HcIoConsoleWriteStdOut( data.encode( 'utf-8' ) )
+
 
 ##
 ## Callback function once the user decides
@@ -30,6 +32,7 @@ def _HcPyScriptLoad(
     script_spec.loader.exec_module( module )
 
     return
+
 
 ##
 ## redirect StdOut and StdErr

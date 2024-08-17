@@ -134,14 +134,18 @@ class HcListenerView:
     def save( self ) -> dict:
         pass
 
+
 def HcUiPayloadBuilderObjName() -> str:
     return ui.HcUiPayloadBuilderObjName()
+
 
 def HcUiListenerObjName() -> str:
     return ui.HcUiListenerObjName()
 
+
 def HcUiGetStyleSheet() -> str:
     return ui.HcUiGetStyleSheet()
+
 
 def HcUiMessageBox( icon: QMessageBox.Icon, title: str, text: str ) -> None:
     ##
@@ -175,6 +179,7 @@ def HcUiBuilderRegisterView( payload: str ):
         ui.HcUiBuilderRegisterView( payload, builder_view )
 
     return _register
+
 
 ##
 ## https://stackoverflow.com/questions/14780517/toggle-switch-in-qt
