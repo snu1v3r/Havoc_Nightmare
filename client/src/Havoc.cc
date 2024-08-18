@@ -240,7 +240,6 @@ auto HavocClient::Main(
     SetupThreads();
 
     QApplication::exec();
-
     return;
 
 ERROR_SERVER_RESPONSE:

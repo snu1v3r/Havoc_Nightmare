@@ -10,14 +10,11 @@
 
 inline auto HcPythonReleaseGil() -> void {
     //
-    // NOTE: I know. this is insanely stupid and retarded to do. But it has gotten to
-    //       a point where I stopped caring as long as shit works. And shit does work.
-    //       So who am I to complain. Tho I will try to rewrite this mostly in the
-    //       future to have a better implementation to safely execute python code
-    //       in other threads without the gil deadlocking me. Or I am waiting til python
-    //       GIL has been removed from the interpreter and the api.
+    // NOTE: this releases the gil in the current
+    //       thread by leaking the thread state
     //
     if ( PyGILState_Check() ) {
+        spdlog::debug( "HcPythonReleaseGil() = released gil" );
         PyEval_SaveThread();
     }
 }

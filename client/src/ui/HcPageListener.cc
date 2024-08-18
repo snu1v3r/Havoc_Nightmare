@@ -163,6 +163,7 @@ auto HcPageListener::buttonAddListener() -> void {
     Dialog->start();
 
     if ( Dialog->getCloseState() != Closed ) {
+        py11::gil_scoped_acquire gil;
         delete Dialog;
     }
 }

@@ -342,64 +342,7 @@ auto HavocClient::eventDispatch(
     }
     else if ( type == Event::agent::console )
     {
-        auto uuid   = std::string();
-        auto format = std::string();
-        auto output = std::string();
-
-        if ( data.empty() ) {
-            spdlog::error( "Event::agent::console: invalid package (data emtpy)" );
-            return;
-        }
-
-        if ( data.contains( "uuid" ) ) {
-            if ( data[ "uuid" ].is_string() ) {
-                uuid = data[ "uuid" ].get<std::string>();
-            } else {
-                spdlog::error( "invalid agent console: \"uuid\" is not string" );
-                return;
-            }
-        } else {
-            spdlog::error( "invalid agent console: \"uuid\" is not found" );
-            return;
-        }
-
-        if ( data.contains( "data" ) ) {
-            if ( data[ "data" ].is_object() ) {
-                data = data[ "data" ].get<json>();
-            } else {
-                spdlog::error( "invalid agent console: \"data\" is not an object" );
-                return;
-            }
-        } else {
-            spdlog::error( "invalid agent console: \"data\" is not found" );
-            return;
-        }
-
-        if ( data.contains( "format" ) ) {
-            if ( data[ "format" ].is_string() ) {
-                format = data[ "format" ].get<std::string>();
-            } else {
-                spdlog::error( "invalid agent console: \"format\" is not string" );
-                return;
-            }
-        } else {
-            spdlog::error( "invalid agent console: \"format\" is not found" );
-            return;
-        }
-
-        if ( data.contains( "output" ) ) {
-            if ( data[ "output" ].is_string() ) {
-                output = data[ "output" ].get<std::string>();
-            } else {
-                spdlog::error( "invalid agent console: \"output\" is not string" );
-                return;
-            }
-        } else {
-            spdlog::error( "invalid agent console: \"output\" is not found" );
-            return;
-        }
-
-        Gui->PageAgent->AgentConsole( uuid, format, output );
+        Gui->AgentConsole( data );
     }
     else if ( type == Event::agent::heartbeat )
     {

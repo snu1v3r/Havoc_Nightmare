@@ -294,7 +294,65 @@ auto HcMainWindow::AddAgent(
 auto HcMainWindow::AgentConsole(
     const json& console
 ) -> void {
+    auto uuid   = std::string();
+    auto format = std::string();
+    auto output = std::string();
+    auto data   = json();
 
+    if ( console.empty() ) {
+        spdlog::error( "[AgentConsole] invalid package (data emtpy)" );
+        return;
+    }
+
+    if ( console.contains( "uuid" ) ) {
+        if ( console[ "uuid" ].is_string() ) {
+            uuid = console[ "uuid" ].get<std::string>();
+        } else {
+            spdlog::error( "invalid agent console: \"uuid\" is not string" );
+            return;
+        }
+    } else {
+        spdlog::error( "invalid agent console: \"uuid\" is not found" );
+        return;
+    }
+
+    if ( console.contains( "data" ) ) {
+        if ( console[ "data" ].is_object() ) {
+            data = console[ "data" ].get<json>();
+        } else {
+            spdlog::error( "invalid agent console: \"data\" is not an object" );
+            return;
+        }
+    } else {
+        spdlog::error( "invalid agent console: \"data\" is not found" );
+        return;
+    }
+
+    if ( data.contains( "format" ) ) {
+        if ( data[ "format" ].is_string() ) {
+            format = data[ "format" ].get<std::string>();
+        } else {
+            spdlog::error( "invalid agent console: \"format\" is not string" );
+            return;
+        }
+    } else {
+        spdlog::error( "invalid agent console: \"format\" is not found" );
+        return;
+    }
+
+    if ( data.contains( "output" ) ) {
+        if ( data[ "output" ].is_string() ) {
+            output = data[ "output" ].get<std::string>();
+        } else {
+            spdlog::error( "invalid agent console: \"output\" is not string" );
+            return;
+        }
+    } else {
+        spdlog::error( "invalid agent console: \"output\" is not found" );
+        return;
+    }
+
+    PageAgent->AgentConsole( uuid, format, output );
 }
 
 HavocButton::HavocButton(
