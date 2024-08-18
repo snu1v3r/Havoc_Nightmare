@@ -79,6 +79,10 @@ public Q_SLOT:
         const json& agent
     ) -> void;
 
+    auto AgentConsole(
+        const json& console
+    ) -> void;
+
 signals:
     auto signalBuildLog(
         const QString& text

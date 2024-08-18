@@ -44,17 +44,16 @@ type teamserver interface {
 	ListenerEdit(name string, config map[string]any) error
 	ListenerList() []map[string]string
 
+	AgentInitialize(uuid, _type string, data map[string]any) error
+	AgentData(uuid string) (map[string]any, error)
+	AgentExist(uuid string) bool
+	AgentType(uuid string) (string, error)
+	AgentDelete(uuid string) error
+	AgentList() []string
 	AgentGenerate(ctx map[string]any, config map[string]any) (string, []byte, map[string]any, error)
 	AgentExecute(uuid string, data map[string]any, wait bool) (map[string]any, error)
-	AgentNote(uuid string, note string) error
-
-	ServerAgentRegister(uuid, _type string, data map[string]any) error
-	ServerAgentExist(uuid string) bool
-	ServerAgent(uuid string) (map[string]any, error)
-	ServerAgentType(uuid string) (string, error)
-	ServerAgentNote(uuid string) (string, error)
-	ServerAgentDelete(uuid string) error
-	ServerAgentList() []string
+	AgentNote(uuid string) (string, error)
+	AgentSetNote(uuid string, note string) error
 }
 
 type ServerApi struct {

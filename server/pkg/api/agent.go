@@ -245,7 +245,7 @@ func (api *ServerApi) agentNote(ctx *gin.Context) {
 		goto ERROR
 	}
 
-	err = api.havoc.AgentNote(uuid, note)
+	err = api.havoc.AgentSetNote(uuid, note)
 	if err != nil {
 		err = fmt.Errorf("failed to set agent note: %v", err)
 		goto ERROR
@@ -278,19 +278,19 @@ func (api *ServerApi) agentList(ctx *gin.Context) {
 
 	logger.Debug("/api/agent/list")
 
-	array = api.havoc.ServerAgentList()
+	array = api.havoc.AgentList()
 	for _, uuid := range array {
-		if plugin, err = api.havoc.ServerAgentType(uuid); err != nil {
+		if plugin, err = api.havoc.AgentType(uuid); err != nil {
 			logger.DebugError("failed to get agent type: %v", err)
 			goto ERROR
 		}
 
-		if note, err = api.havoc.ServerAgentNote(uuid); err != nil {
+		if note, err = api.havoc.AgentNote(uuid); err != nil {
 			logger.DebugError("failed to get agent note: %v", err)
 			goto ERROR
 		}
 
-		if agent, err = api.havoc.ServerAgent(uuid); err != nil {
+		if agent, err = api.havoc.AgentData(uuid); err != nil {
 			logger.DebugError("failed to get agent info: %v", err)
 			goto ERROR
 		}

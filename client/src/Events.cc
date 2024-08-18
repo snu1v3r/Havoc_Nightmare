@@ -207,8 +207,6 @@ auto HavocClient::eventDispatch(
     else if ( type == Event::agent::callback )
     {
         auto uuid          = std::string();
-        auto typ           = std::string();
-        auto arg           = json();
         auto ctx           = json();
         auto pat           = std::string();
         auto out           = std::string();
@@ -218,6 +216,8 @@ auto HavocClient::eventDispatch(
             spdlog::error( "Event::agent::callback: invalid package (data emtpy)" );
             return;
         }
+
+        spdlog::debug( "Event::agent::callback -> {}", data.dump() );
 
         if ( data.contains( "uuid" ) ) {
             if ( data[ "uuid" ].is_string() ) {
@@ -231,233 +231,225 @@ auto HavocClient::eventDispatch(
             return;
         }
 
-        if ( data.contains( "type" ) ) {
-            if ( data[ "type" ].is_string() ) {
-                typ = data[ "type" ].get<std::string>();
-            } else {
-                spdlog::error( "invalid agent callback: \"type\" is not string" );
-                return;
-            }
-        } else {
-            spdlog::error( "invalid agent callback: \"type\" is not found" );
-            return;
-        }
+        //
+        // this type indicates that a callback function should be invoked
+        // with the following callback uuid (inside the uuid member)
+        //
+        if ( data.contains( "data" ) && data[ "data" ].is_object() ) {
+            data = data[ "data" ].get<json>();
 
-        if ( typ == "console" ) {
-            if ( data.contains( "data" ) ) {
-                if ( data[ "data" ].is_object() ) {
-                    arg = data[ "data" ].get<json>();
-                } else {
-                    spdlog::error( "invalid agent callback: \"data\" is not an object" );
-                    return;
-                }
-            } else {
-                spdlog::error( "invalid agent callback: \"data\" is not found" );
-                return;
-            }
-
-            if ( arg.contains( "format" ) ) {
-                if ( arg[ "format" ].is_string() ) {
-                    pat = arg[ "format" ].get<std::string>();
-                } else {
-                    spdlog::error( "invalid agent callback: \"format\" is not string" );
-                    return;
-                }
-            } else {
-                spdlog::error( "invalid agent callback: \"format\" is not found" );
-                return;
-            }
-
-            if ( arg.contains( "output" ) ) {
-                if ( arg[ "output" ].is_string() ) {
-                    out = arg[ "output" ].get<std::string>();
-                } else {
-                    spdlog::error( "invalid agent callback: \"output\" is not string" );
-                    return;
-                }
-            } else {
-                spdlog::error( "invalid agent callback: \"output\" is not found" );
-                return;
-            }
-
-            Gui->PageAgent->AgentConsole( uuid, pat, out );
-        } else if ( typ == "function" ) {
             //
-            // this type indicates that a callback function should be invoked
-            // with the following callback uuid (inside the uuid member)
+            // acquire python gil to interact with the
+            // python function and call the callback
             //
-            if ( data.contains( "data" ) ) {
-                if ( data[ "data" ].is_object() ) {
-                    arg = data[ "data" ].get<json>();
-
-                    //
-                    // acquire python gil to interact with the
-                    // python function and call the callback
-                    //
-                    auto gil = py11::gil_scoped_acquire();
-
-                    //
-                    // get the data to pass to the callback
-                    //
-                    if ( arg.contains( "data" ) ) {
-                        if ( arg[ "data" ].is_string() ) {
-                            out = arg[ "data" ].get<std::string>();
-                        } else {
-                            spdlog::error( "invalid agent callback: \"data\" is not string" );
-                            return;
-                        }
-                    } else {
-                        spdlog::error( "invalid agent callback: \"data\" is not found" );
-                        return;
-                    }
-
-                    //
-                    // get the task uuid to pass to the callback
-                    //
-                    if ( arg.contains( "callback" ) ) {
-                        if ( arg[ "callback" ].is_string() ) {
-                            callback_uuid = arg[ "callback" ].get<std::string>();
-                        } else {
-                            spdlog::error( "invalid agent callback: \"callback\" is not a string" );
-                            return;
-                        }
-                    } else {
-                        spdlog::error( "invalid agent callback: \"callback\" is not found" );
-                        return;
-                    }
-
-                    //
-                    // get context from the callback that needs to
-                    // be passed to the callback python function
-                    //
-                    if ( arg.contains( "context" ) ) {
-                        if ( arg[ "context" ].is_object() ) {
-                            ctx = arg[ "context" ].get<json>();
-                        } else {
-                            spdlog::error( "invalid agent callback: \"context\" is not an object" );
-                            return;
-                        }
-                    } else {
-                        spdlog::error( "invalid agent callback: \"context\" is not found" );
-                        return;
-                    }
-
-                    //
-                    // get registered callback object
-                    //
-                    if ( auto callback = Havoc->CallbackObject( callback_uuid ) ) {
-                        //
-                        // did we found a callback based on the uuid ?
-                        //
-                        if ( callback.has_value() ) {
-                            //
-                            // search for the agent via the specified uuid
-                            //
-                            if ( auto agent = Havoc->Gui->PageAgent->Agent( uuid ) ) {
-                                //
-                                // check if we found the agent and if
-                                // it contains a python interface
-                                //
-                                if ( agent.has_value() && agent.value()->interface.has_value() ) {
-                                    pat = QByteArray::fromBase64( out.c_str() ).toStdString();
-
-                                    try {
-                                        //
-                                        // actually invoke the callback with following arguments:
-                                        //
-                                        //   def callback( agent: HcAgent, data: bytes, **kwargs ):
-                                        //      # agent interface can be invoked now
-                                        //      return
-                                        //
-                                        callback.value()(
-                                            agent.value()->interface.value(),
-                                            py11::bytes( pat.c_str(), pat.length() ),
-                                            **py11::dict( ctx )
-                                        );
-                                    } catch ( py11::error_already_set &eas ) {
-                                        //
-                                        // catch exception and print it to the agent
-                                        // console as it was running under its context
-                                        //
-                                        emit agent.value()->emitter.ConsoleWrite( agent.value()->uuid.c_str(), eas.what() );
-                                    }
-                                } else {
-                                    spdlog::error(
-                                        "[agent.has_value(): {}] [agent.value()->interface.has_value(): {}]",
-                                        agent.has_value(),
-                                        agent.has_value() ? agent.value()->interface.has_value() : false
-                                    );
-                                }
-                            }
-                        } else {
-                            spdlog::error( "CallbackObject has no value: {}", callback_uuid );
-                        }
-                    } else {
-                        spdlog::error( "CallbackObject not found: {}", callback_uuid );
-                    }
-                } else {
-                    spdlog::error( "invalid agent callback: \"data\" is not an object" );
-                    return;
-                }
-            } else {
-                spdlog::error( "invalid agent callback: \"data\" is not found" );
-                return;
-            }
-        } else if ( typ == "heartbeat" ) {
-            if ( data.contains( "data" ) ) {
-                if ( data[ "data" ].is_object() ) {
-                    arg = data[ "data" ].get<json>();
-                } else {
-                    spdlog::error( "invalid agent heartbeat: \"data\" is not an object" );
-                    return;
-                }
-            } else {
-                spdlog::error( "invalid agent heartbeat: \"data\" is not found" );
-                return;
-            }
+            auto gil = py11::gil_scoped_acquire();
 
             //
             // get the data to pass to the callback
             //
-            if ( arg.contains( "time" ) ) {
-                if ( arg[ "time" ].is_string() ) {
-                    out = arg[ "time" ].get<std::string>();
+            if ( data.contains( "data" ) ) {
+                if ( data[ "data" ].is_string() ) {
+                    out = data[ "data" ].get<std::string>();
                 } else {
-                    spdlog::error( "invalid agent heartbeat: \"time\" is not string" );
+                    spdlog::error( "invalid agent callback: \"data\" is not string" );
                     return;
                 }
             } else {
-                spdlog::error( "invalid agent heartbeat: \"time\" is not found" );
+                spdlog::error( "invalid agent callback: \"data\" is not found" );
                 return;
             }
 
             //
-            // set the last callback of the agent
+            // get the task uuid to pass to the callback
             //
-            if ( auto agent = Agent( uuid ) ) {
-                if ( agent.has_value() ) {
-                    agent.value()->last = QString( out.c_str() );
+            if ( data.contains( "callback" ) ) {
+                if ( data[ "callback" ].is_string() ) {
+                    callback_uuid = data[ "callback" ].get<std::string>();
                 } else {
-                    spdlog::error( "invalid agent heartbeat: \"uuid\" agent does not have any value" );
+                    spdlog::error( "invalid agent callback: \"callback\" is not a string" );
+                    return;
                 }
             } else {
-                spdlog::error( "invalid agent heartbeat: \"uuid\" agent not found" );
+                spdlog::error( "invalid agent callback: \"callback\" is not found" );
+                return;
+            }
+
+            //
+            // get context from the callback that needs to
+            // be passed to the callback python function
+            //
+            if ( data.contains( "context" ) ) {
+                if ( data[ "context" ].is_object() ) {
+                    ctx = data[ "context" ].get<json>();
+                } else {
+                    spdlog::error( "invalid agent callback: \"context\" is not an object" );
+                    return;
+                }
+            } else {
+                spdlog::error( "invalid agent callback: \"context\" is not found" );
+                return;
+            }
+
+            //
+            // get registered callback object
+            //
+            auto callback = Havoc->CallbackObject( callback_uuid );
+            if ( ! callback.has_value() ) {
+                spdlog::error( "CallbackObject has no value: {}", callback_uuid );
+                return;
+            }
+
+            //
+            // search for the agent via the specified uuid &
+            // check if we found the agent and if it contains
+            // a python interface
+            //
+            auto agent = Havoc->Gui->PageAgent->Agent( uuid );
+            if ( agent.has_value() && agent.value()->interface.has_value() ) {
+                pat = QByteArray::fromBase64( out.c_str() ).toStdString();
+
+                try {
+                    //
+                    // actually invoke the callback with following arguments:
+                    //
+                    //   def callback( agent: HcAgent, data: bytes, **kwargs ):
+                    //      # agent interface can be invoked now
+                    //      return
+                    //
+                    callback.value()(
+                            agent.value()->interface.value(),
+                            py11::bytes( pat.c_str(), pat.length() ),
+                            **py11::dict( ctx )
+                    );
+                } catch ( py11::error_already_set &eas ) {
+                    //
+                    // catch exception and print it to the agent
+                    // console as it was running under its context
+                    //
+                    emit agent.value()->emitter.ConsoleWrite( agent.value()->uuid.c_str(), eas.what() );
+                }
+            } else {
+                spdlog::error(
+                    "[agent.has_value(): {}] [agent.value()->interface.has_value(): {}]",
+                    agent.has_value(),
+                    agent.has_value() && agent.value()->interface.has_value()
+                );
             }
         } else {
-            spdlog::error( "invalid agent typ: {}", typ );
+            spdlog::error( "invalid agent callback: \"data\" is not found or not an object" );
+            return;
         }
     }
     else if ( type == Event::agent::console )
     {
+        auto uuid   = std::string();
+        auto format = std::string();
+        auto output = std::string();
 
+        if ( data.empty() ) {
+            spdlog::error( "Event::agent::console: invalid package (data emtpy)" );
+            return;
+        }
+
+        if ( data.contains( "uuid" ) ) {
+            if ( data[ "uuid" ].is_string() ) {
+                uuid = data[ "uuid" ].get<std::string>();
+            } else {
+                spdlog::error( "invalid agent console: \"uuid\" is not string" );
+                return;
+            }
+        } else {
+            spdlog::error( "invalid agent console: \"uuid\" is not found" );
+            return;
+        }
+
+        if ( data.contains( "data" ) ) {
+            if ( data[ "data" ].is_object() ) {
+                data = data[ "data" ].get<json>();
+            } else {
+                spdlog::error( "invalid agent console: \"data\" is not an object" );
+                return;
+            }
+        } else {
+            spdlog::error( "invalid agent console: \"data\" is not found" );
+            return;
+        }
+
+        if ( data.contains( "format" ) ) {
+            if ( data[ "format" ].is_string() ) {
+                format = data[ "format" ].get<std::string>();
+            } else {
+                spdlog::error( "invalid agent console: \"format\" is not string" );
+                return;
+            }
+        } else {
+            spdlog::error( "invalid agent console: \"format\" is not found" );
+            return;
+        }
+
+        if ( data.contains( "output" ) ) {
+            if ( data[ "output" ].is_string() ) {
+                output = data[ "output" ].get<std::string>();
+            } else {
+                spdlog::error( "invalid agent console: \"output\" is not string" );
+                return;
+            }
+        } else {
+            spdlog::error( "invalid agent console: \"output\" is not found" );
+            return;
+        }
+
+        Gui->PageAgent->AgentConsole( uuid, format, output );
     }
-    else if ( type == Event::agent::input )
+    else if ( type == Event::agent::heartbeat )
     {
+        auto uuid = std::string();
+        auto time = std::string();
 
-    }
-    else if ( type == Event::agent::task )
-    {
+        if ( data.empty() ) {
+            spdlog::error( "Event::agent::heartbeat: invalid package (data emtpy)" );
+            return;
+        }
 
+        if ( data.contains( "uuid" ) ) {
+            if ( data[ "uuid" ].is_string() ) {
+                uuid = data[ "uuid" ].get<std::string>();
+            } else {
+                spdlog::error( "invalid agent heartbeat: \"uuid\" is not string" );
+                return;
+            }
+        } else {
+            spdlog::error( "invalid agent heartbeat: \"uuid\" is not found" );
+            return;
+        }
+
+        //
+        // get the data to pass to the callback
+        //
+        if ( data.contains( "time" ) ) {
+            if ( data[ "time" ].is_string() ) {
+                time = data[ "time" ].get<std::string>();
+            } else {
+                spdlog::error( "invalid agent heartbeat: \"time\" is not string" );
+                return;
+            }
+        } else {
+            spdlog::error( "invalid agent heartbeat: \"time\" is not found" );
+            return;
+        }
+
+        //
+        // set the last callback of the agent
+        //
+        if ( auto agent = Agent( uuid ) ) {
+            if ( agent.has_value() ) {
+                agent.value()->last = QString( time.c_str() );
+            } else {
+                spdlog::error( "invalid agent heartbeat: \"uuid\" agent does not have any value" );
+            }
+        } else {
+            spdlog::error( "invalid agent heartbeat: \"uuid\" agent not found" );
+        }
     }
     else if ( type == Event::agent::status )
     {

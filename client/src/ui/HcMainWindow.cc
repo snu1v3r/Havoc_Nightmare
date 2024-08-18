@@ -291,6 +291,12 @@ auto HcMainWindow::AddAgent(
     PageAgent->addAgent( agent );
 }
 
+auto HcMainWindow::AgentConsole(
+    const json& console
+) -> void {
+
+}
+
 HavocButton::HavocButton(
     QWidget *w
 ) : QPushButton( w ) {

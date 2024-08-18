@@ -7,7 +7,128 @@ import (
 	"fmt"
 )
 
-func (t *Teamserver) AgentRegister(name string, agent map[string]any) error {
+func (t *Teamserver) AgentInitialize(uuid, plugin string, data map[string]any) error {
+	var agent = &Agent{
+		uuid:   uuid,
+		plugin: plugin,
+	}
+
+	// check if the given uuid already exists
+	if _, ok := t.agents.Load(uuid); ok {
+		return errors.New("agent with given uuid already exists")
+	}
+
+	// store the agent data with the given uuid
+	t.agents.Store(uuid, agent)
+
+	t.LogDebug("agent: %v", agent)
+
+	t.UserBroadcast(false, t.EventCreate(EventAgentInitialize, map[string]any{
+		"uuid": uuid,
+		"type": plugin,
+		"meta": data,
+	}))
+
+	return nil
+}
+
+func (t *Teamserver) AgentExist(uuid string) bool {
+	_, found := t.agents.Load(uuid)
+
+	return found
+}
+
+func (t *Teamserver) AgentData(uuid string) (map[string]any, error) {
+	var (
+		agent *Agent
+		val   any
+		ok    bool
+	)
+
+	// check if the given uuid already exists
+	if val, ok = t.agents.Load(uuid); ok {
+		agent = val.(*Agent)
+	} else {
+		return nil, errors.New("agent with given uuid doesn't exists")
+	}
+
+	return t.plugins.AgentGet(agent.plugin, uuid)
+}
+
+func (t *Teamserver) AgentType(uuid string) (string, error) {
+	var (
+		agent any
+		ok    bool
+	)
+
+	// check if the given uuid already exists
+	if agent, ok = t.agents.Load(uuid); !ok {
+		return "", errors.New("agent with given uuid doesn't exists")
+	}
+
+	return agent.(*Agent).plugin, nil
+}
+
+func (t *Teamserver) AgentNote(uuid string) (string, error) {
+	var (
+		agent any
+		ok    bool
+	)
+
+	// check if the given uuid already exists
+	if agent, ok = t.agents.Load(uuid); !ok {
+		return "", errors.New("agent with given uuid doesn't exists")
+	}
+
+	return agent.(*Agent).note, nil
+}
+
+func (t *Teamserver) AgentDelete(uuid string) error {
+	// check if the given uuid exists
+	if _, ok := t.agents.Load(uuid); !ok {
+		return errors.New("agent with given uuid doesn't exists")
+	}
+
+	t.agents.Delete(uuid)
+
+	return nil
+}
+
+func (t *Teamserver) AgentList() []string {
+	var list []string
+
+	t.agents.Range(func(k, v interface{}) bool {
+		agent := v.(*Agent)
+		list = append(list, agent.uuid)
+		return true
+	})
+
+	return list
+}
+
+// AgentStatus updates the agent object status
+// and broadcasts the event to every connected client
+func (t *Teamserver) AgentStatus(uuid string, status string) error {
+	var agent *Agent
+
+	// check if the given uuid already exists
+	if val, ok := t.agents.Load(uuid); !ok {
+		return errors.New("agent with given uuid doesn't exists")
+	} else {
+		agent = val.(*Agent)
+	}
+
+	agent.status = status
+
+	t.UserBroadcast(false, t.EventCreate(EventAgentStatus, map[string]any{
+		"uuid":   uuid,
+		"status": status,
+	}))
+
+	return nil
+}
+
+func (t *Teamserver) AgentRegisterType(name string, agent map[string]any) error {
 	var (
 		payload Handler
 		data    []byte
@@ -55,7 +176,7 @@ func (t *Teamserver) AgentGenerate(ctx map[string]any, config map[string]any) (s
 	return "", nil, nil, errors.New("agent to generate not found")
 }
 
-func (t *Teamserver) AgentNote(uuid, note string) error {
+func (t *Teamserver) AgentSetNote(uuid, note string) error {
 	var (
 		agent *Agent
 		value any
@@ -115,16 +236,23 @@ func (t *Teamserver) AgentBuildLog(context map[string]any, format string, args .
 	}
 }
 
-func (t *Teamserver) AgentCallback(uuid string, _type string, data map[string]any) {
-	var save = false
-
-	if _type == "console" {
-		save = true
-	}
-
-	t.UserBroadcast(save, t.EventCreate(EventAgentCallback, map[string]any{
+func (t *Teamserver) AgentCallback(uuid string, data map[string]any) {
+	t.UserBroadcast(false, t.EventCreate(EventAgentCallback, map[string]any{
 		"uuid": uuid,
-		"type": _type,
 		"data": data,
+	}))
+}
+
+func (t *Teamserver) AgentConsole(uuid string, data map[string]any) {
+	t.UserBroadcast(false, t.EventCreate(EventAgentConsole, map[string]any{
+		"uuid": uuid,
+		"data": data,
+	}))
+}
+
+func (t *Teamserver) AgentHeartbeat(uuid, time string) {
+	t.UserBroadcast(false, t.EventCreate(EventAgentHeartbeat, map[string]any{
+		"uuid": uuid,
+		"time": time,
 	}))
 }

@@ -174,6 +174,7 @@ auto HcPageAgent::addAgent(
     const json& metadata
 ) -> void {
     auto uuid    = QString();
+    auto type    = std::string();
     auto arch    = QString();
     auto user    = QString();
     auto host    = QString();
@@ -185,29 +186,106 @@ auto HcPageAgent::addAgent(
     auto system  = QString();
     auto last    = QString();
     auto note    = QString();
+    auto meta    = json();
     auto row     = AgentTable->rowCount();
     auto sort    = AgentTable->isSortingEnabled();
 
-    //
-    // TODO: sanity check
-    //
+    if ( metadata.contains( "uuid" ) && metadata[ "uuid" ].is_string() ) {
+        uuid = QString( metadata[ "uuid" ].get<std::string>().c_str() );
+    } else {
+        spdlog::error( "[HcPageAgent::addAgent] agent does not contain valid uuid" );
+        return;
+    }
 
-    uuid    = QString( metadata[ "uuid" ].get<std::string>().c_str() );
-    note    = QString( metadata[ "note" ].get<std::string>().c_str() );
-    user    = QString( metadata[ "meta" ][ "user" ].get<std::string>().c_str() );
-    arch    = QString( metadata[ "meta" ][ "arch" ].get<std::string>().c_str() );
-    host    = QString( metadata[ "meta" ][ "host" ].get<std::string>().c_str() );
-    local   = QString( metadata[ "meta" ][ "local ip" ].get<std::string>().c_str() );
-    path    = QString( metadata[ "meta" ][ "process path" ].get<std::string>().c_str() );
-    process = QString( metadata[ "meta" ][ "process name"].get<std::string>().c_str() );
-    pid     = QString::number( metadata[ "meta" ][ "pid" ].get<int>() );
-    tid     = QString::number( metadata[ "meta" ][ "tid" ].get<int>() );
-    system  = QString( metadata[ "meta" ][ "system" ].get<std::string>().c_str() );
-    last    = QString( metadata[ "meta" ][ "last callback" ].get<std::string>().c_str() );
+    if ( metadata.contains( "type" ) && metadata[ "type" ].is_string() ) {
+        type = metadata[ "type" ].get<std::string>();
+    } else {
+        spdlog::error( "[HcPageAgent::addAgent] agent does not contain valid type" );
+        return;
+    }
+
+    if ( metadata.contains( "note" ) && metadata[ "note" ].is_string() ) {
+        note = QString( metadata[ "note" ].get<std::string>().c_str() );
+    } else {
+        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain any note" );
+    }
+
+    if ( metadata.contains( "meta" ) && metadata[ "meta" ].is_object() ) {
+        meta = metadata[ "meta" ].get<json>();
+    } else {
+        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta object" );
+        return;
+    }
+
+    if ( meta.contains( "user" ) && meta[ "user" ].is_string() ) {
+        user = QString( meta[ "user" ].get<std::string>().c_str() );
+    } else {
+        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta user" );
+    }
+
+    if ( meta.contains( "host" ) && meta[ "host" ].is_string() ) {
+        host = QString( meta[ "host" ].get<std::string>().c_str() );
+    } else {
+        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta host" );
+    }
+
+    if ( meta.contains( "arch" ) && meta[ "arch" ].is_string() ) {
+        arch = QString( meta[ "arch" ].get<std::string>().c_str() );
+    } else {
+        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta arch" );
+    }
+
+    if ( meta.contains( "local ip" ) && meta[ "local ip" ].is_string() ) {
+        local = QString( meta[ "local ip" ].get<std::string>().c_str() );
+    } else {
+        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta local ip" );
+    }
+
+    if ( meta.contains( "process path" ) && meta[ "process path" ].is_string() ) {
+        path = QString( meta[ "process path" ].get<std::string>().c_str() );
+    } else {
+        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta process path" );
+    }
+
+    if ( meta.contains( "process name" ) && meta[ "process name" ].is_string() ) {
+        process = QString( meta[ "process name" ].get<std::string>().c_str() );
+    } else {
+        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta process name" );
+    }
+
+    if ( meta.contains( "process name" ) && meta[ "process name" ].is_string() ) {
+        process = QString( meta[ "process name" ].get<std::string>().c_str() );
+    } else {
+        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta process name" );
+    }
+
+    if ( meta.contains( "pid" ) && meta[ "pid" ].is_number_integer() ) {
+        pid = QString::number( meta[ "pid" ].get<int>() );
+    } else {
+        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta pid" );
+    }
+
+    if ( meta.contains( "tid" ) && meta[ "tid" ].is_number_integer() ) {
+        tid = QString::number( meta[ "tid" ].get<int>() );
+    } else {
+        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta tid" );
+    }
+
+    if ( meta.contains( "system" ) && meta[ "system" ].is_string() ) {
+        system = QString( meta[ "system" ].get<std::string>().c_str() );
+    } else {
+        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta system" );
+    }
+
+    if ( meta.contains( "last callback" ) && meta[ "last callback" ].is_string() ) {
+        last = QString( meta[ "last callback" ].get<std::string>().c_str() );
+    } else {
+        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta last" );
+    }
 
     auto agent = new HcAgent {
         .uuid = uuid.toStdString(),
-        .type = metadata[ "type" ].get<std::string>(),
+        .type = type,
         .data = metadata,
         .last = last,
         .ui   = {
