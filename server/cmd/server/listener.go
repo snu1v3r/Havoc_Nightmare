@@ -58,6 +58,16 @@ func (t *Teamserver) ListenerExists(name string) bool {
 	return false
 }
 
+func (t *Teamserver) ListenerProtocolExists(protocol string) bool {
+	for _, listener := range t.protocols {
+		if listener.Data["protocol"].(string) == protocol {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (t *Teamserver) ListenerInitDir(name string) (string, error) {
 	var (
 		path string
@@ -92,7 +102,7 @@ func (t *Teamserver) ListenerRemove(name string) error {
 				return err
 			}
 
-			t.UserBroadcast(true, t.EventCreate(EventListenerRemove, map[string]string{
+			t.UserBroadcast(false, t.EventCreate(EventListenerRemove, map[string]string{
 				"name": name,
 			}))
 
@@ -125,7 +135,7 @@ func (t *Teamserver) ListenerRestart(name string) error {
 				return err
 			}
 
-			t.ListenerStatus(name, status)
+			t.ListenerStatus(name, status, true)
 			break
 		}
 	}
@@ -154,7 +164,9 @@ func (t *Teamserver) ListenerStop(name string) error {
 				return err
 			}
 
-			t.UserBroadcast(true, t.EventCreate(EventListenerStop, map[string]string{
+			t.ListenerStatus(name, status, false)
+
+			t.UserBroadcast(false, t.EventCreate(EventListenerStop, map[string]string{
 				"name":   name,
 				"status": status,
 			}))
@@ -173,68 +185,68 @@ func (t *Teamserver) ListenerStart(name, protocol string, options map[string]any
 		port   string
 		status string
 		path   string
-		found  = false
 	)
 
-	for _, prot := range t.protocols {
-		if val, ok := prot.Data["protocol"]; ok {
-			if val.(string) == protocol {
-				// check if we want to start a listener with the same
-				// name by checking if a config has been specified
-				if t.ListenerExists(name) && options != nil {
-					return errors.New("listener already exists")
-				}
+	// check if specified protocol exists and has been registered to the server
+	if t.ListenerProtocolExists(protocol) {
+		// check if we want to start a listener with the same
+		// name by checking if a config has been specified
+		if t.ListenerExists(name) && options != nil {
+			return errors.New("listener already exists")
+		}
 
-				found = true
-
-				if !t.ListenerExists(name) {
-					if path, err = t.ListenerInitDir(name); err != nil {
-						return errors.New("failed to create listener config path: " + err.Error())
-					}
-				}
-
-				if data, err = t.plugins.ListenerStart(name, protocol, options); err != nil {
-					return err
-				}
-
-				if t.ListenerExists(name) {
-					status, ok = data["status"]
-
-					t.UserBroadcast(true, t.EventCreate(EventListenerStart, map[string]string{
-						"name":   name,
-						"status": status,
-					}))
-				} else {
-					host, ok = data["host"]
-					port, ok = data["port"]
-					status, ok = data["status"]
-
-					t.listener = append(t.listener, Handler{
-						Name: name,
-						Data: map[string]any{
-							"protocol":    protocol,
-							"host":        host,
-							"port":        port,
-							"status":      status,
-							"config.path": path,
-						},
-					})
-
-					t.UserBroadcast(true, t.EventCreate(EventListenerStart, map[string]string{
-						"name":     name,
-						"protocol": protocol,
-						"host":     host,
-						"port":     port,
-						"status":   status,
-					}))
-				}
-
-				break
+		if !t.ListenerExists(name) {
+			if path, err = t.ListenerInitDir(name); err != nil {
+				return errors.New("failed to create listener config path: " + err.Error())
 			}
 		}
-	}
 
-	if !found {
+		if data, err = t.plugins.ListenerStart(name, protocol, options); err != nil {
+			return err
+		}
+
+		if t.ListenerExists(name) {
+			status, _ = data["status"]
+
+			for i := range t.listener {
+				if t.listener[i].Name == name {
+					t.listener[i].Data["status"] = status
+					break
+				}
+			}
+
+			t.ListenerStatus(name, status, false)
+
+			t.UserBroadcast(false, t.EventCreate(EventListenerStart, map[string]string{
+				"name":   name,
+				"status": status,
+			}))
+		} else {
+			host, _ = data["host"]
+			port, _ = data["port"]
+			status, _ = data["status"]
+
+			// TODO: replace the Handler struct here with a custom one called Listener
+			t.listener = append(t.listener, Handler{
+				Name: name,
+				Data: map[string]any{
+					"protocol":    protocol,
+					"host":        host,
+					"port":        port,
+					"status":      status,
+					"config.path": path,
+				},
+			})
+
+			t.UserBroadcast(false, t.EventCreate(EventListenerStart, map[string]string{
+				"name":     name,
+				"protocol": protocol,
+				"host":     host,
+				"port":     port,
+				"status":   status,
+			}))
+		}
+	} else {
 		err = fmt.Errorf("listener protocol \"%v\" has not been registered by the server", protocol)
 	}
 
@@ -244,7 +256,6 @@ func (t *Teamserver) ListenerStart(name, protocol string, options map[string]any
 func (t *Teamserver) ListenerEvent(name string, event map[string]any) (map[string]any, error) {
 	var (
 		err      error
-		resp     map[string]any
 		protocol string
 	)
 
@@ -254,19 +265,11 @@ func (t *Teamserver) ListenerEvent(name string, event map[string]any) (map[strin
 		return nil, err
 	}
 
-	for _, p := range t.protocols {
-		if val, ok := p.Data["protocol"]; ok {
-			if val.(string) == protocol {
-				if resp, err = t.plugins.ListenerEvent(name, event); err != nil {
-					return nil, err
-				}
-
-				break
-			}
-		}
+	if !t.ListenerProtocolExists(protocol) {
+		return nil, errors.New("listener protocol not found")
 	}
 
-	return resp, err
+	return t.plugins.ListenerEvent(name, event)
 }
 
 func (t *Teamserver) ListenerConfig(name string) (map[string]any, error) {
@@ -296,18 +299,43 @@ func (t *Teamserver) ListenerEdit(name string, config map[string]any) error {
 	return err
 }
 
+func (t *Teamserver) ListenerList() []map[string]string {
+	var list []map[string]string
+
+	for _, listener := range t.listener {
+		list = append(list, map[string]string{
+			"name":     listener.Name,
+			"protocol": listener.Data["protocol"].(string),
+			"host":     listener.Data["host"].(string),
+			"port":     listener.Data["port"].(string),
+			"status":   listener.Data["status"].(string),
+		})
+	}
+
+	return list
+}
+
 func (t *Teamserver) ListenerLog(name string, format string, args ...any) {
-	t.UserBroadcast(true, t.EventCreate(EventListenerLog, map[string]any{
+	t.UserBroadcast(false, t.EventCreate(EventListenerLog, map[string]any{
 		"name": name,
 		"log":  fmt.Sprintf(format, args...),
 	}))
 }
 
-func (t *Teamserver) ListenerStatus(name string, status string) {
-	t.UserBroadcast(true, t.EventCreate(EventListenerStatus, map[string]any{
-		"name":   name,
-		"status": status,
-	}))
+func (t *Teamserver) ListenerStatus(name string, status string, event bool) {
+	for i := range t.listener {
+		if t.listener[i].Name == name {
+			t.listener[i].Data["status"] = status
+			break
+		}
+	}
+
+	if event {
+		t.UserBroadcast(false, t.EventCreate(EventListenerStatus, map[string]any{
+			"name":   name,
+			"status": status,
+		}))
+	}
 }
 
 func (t *Teamserver) ListenerConfigPath(name string) string {

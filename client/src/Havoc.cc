@@ -212,8 +212,8 @@ auto HavocClient::Main(
     //
     // setup Python thread
     //
-    Python.Engine = new HcPyEngine();
-    Python.Engine->run();
+    PyEngine = new HcPyEngine();
+    PyEngine->run();
 
     //
     // load the registered scripts
@@ -378,7 +378,10 @@ auto HavocClient::SetupThreads() -> void {
     // fire up the even thread that is going to
     // process events and emit signals to the main gui thread
     //
-    Events.Thread->start();
+    // NOTE: manually starting the thread is no longer needed as it is going to
+    //       be started and triggered once the meta worker thread has finished running
+    //
+    // Events.Thread->start();
 
     //
     // start the heartbeat worker thread
@@ -394,6 +397,29 @@ auto HavocClient::SetupThreads() -> void {
     // process heart beat events
     //
     Heartbeat.Thread->start();
+
+    //
+    // start the heartbeat worker thread
+    //
+    MetaWorker.Thread = new QThread;
+    MetaWorker.Worker = new HcMetaWorker;
+    MetaWorker.Worker->moveToThread( MetaWorker.Thread );
+
+    QObject::connect( MetaWorker.Thread, &QThread::started, MetaWorker.Worker, &HcMetaWorker::run );
+
+    //
+    // connect methods to add listeners, agents, etc. to the user interface (ui)
+    //
+    QObject::connect( MetaWorker.Worker, &HcMetaWorker::AddListener, Gui, &HcMainWindow::AddListener );
+    QObject::connect( MetaWorker.Worker, &HcMetaWorker::AddAgent, Gui, &HcMainWindow::AddAgent );
+
+    //
+    // only start the event worker once the meta worker finished
+    // pulling all the listeners, agents, etc. from the server
+    //
+    QObject::connect( MetaWorker.Worker, &HcMetaWorker::eventWorkerRun, this, [&](){ Events.Thread->start(); } );
+
+    MetaWorker.Thread->start();
 }
 
 auto HavocClient::AddBuilder(

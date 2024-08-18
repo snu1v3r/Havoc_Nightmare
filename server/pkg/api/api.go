@@ -42,10 +42,19 @@ type teamserver interface {
 	ListenerEvent(protocol string, event map[string]any) (map[string]any, error)
 	ListenerConfig(name string) (map[string]any, error)
 	ListenerEdit(name string, config map[string]any) error
+	ListenerList() []map[string]string
 
 	AgentGenerate(ctx map[string]any, config map[string]any) (string, []byte, map[string]any, error)
 	AgentExecute(uuid string, data map[string]any, wait bool) (map[string]any, error)
 	AgentNote(uuid string, note string) error
+
+	ServerAgentRegister(uuid, _type string, data map[string]any) error
+	ServerAgentExist(uuid string) bool
+	ServerAgent(uuid string) (map[string]any, error)
+	ServerAgentType(uuid string) (string, error)
+	ServerAgentNote(uuid string) (string, error)
+	ServerAgentDelete(uuid string) error
+	ServerAgentList() []string
 }
 
 type ServerApi struct {
@@ -58,11 +67,11 @@ type ServerApi struct {
 		key  string
 	}
 
-	// teamserver interface
+	// havoc interface
 	// to interact with some functions to
 	// add/query/remove objects and data
 	// to from the teamserver
-	teamserver teamserver
+	havoc teamserver
 
 	// wait queue for websockets to send
 	// the access token to register the
@@ -75,7 +84,7 @@ func NewServerApi(teamserver teamserver) (*ServerApi, error) {
 
 	gin.SetMode(gin.ReleaseMode)
 
-	api.teamserver = teamserver
+	api.havoc = teamserver
 	api.Engine = gin.New()
 
 	//
@@ -93,6 +102,7 @@ func NewServerApi(teamserver teamserver) (*ServerApi, error) {
 	api.Engine.POST("/api/listener/edit", api.listenerEdit)
 	api.Engine.POST("/api/listener/event", api.listenerEvent)
 	api.Engine.POST("/api/listener/config", api.listenerConfig)
+	api.Engine.POST("/api/listener/list", api.listenerList)
 
 	//
 	// agent endpoints
@@ -100,6 +110,8 @@ func NewServerApi(teamserver teamserver) (*ServerApi, error) {
 	api.Engine.POST("/api/agent/build", api.agentBuild)
 	api.Engine.POST("/api/agent/execute", api.agentExecute)
 	api.Engine.POST("/api/agent/note", api.agentNote)
+	api.Engine.POST("/api/agent/list", api.agentList)
+	api.Engine.POST("/api/agent/console", api.agentConsole)
 
 	//
 	// websocket event endpoint
@@ -215,7 +227,7 @@ func (api *ServerApi) login(ctx *gin.Context) {
 
 	// check if the specified user
 	// is already active/online
-	if api.teamserver.UserStatus(user) == UserStatusOnline {
+	if api.havoc.UserStatus(user) == UserStatusOnline {
 		ctx.JSON(http.StatusUnauthorized, gin.H{
 			"error": "user is already online",
 		})
@@ -232,7 +244,7 @@ func (api *ServerApi) login(ctx *gin.Context) {
 	}
 
 	// check if we can authenticate the user
-	if !api.teamserver.UserAuthenticate(user, pass) {
+	if !api.havoc.UserAuthenticate(user, pass) {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
@@ -310,7 +322,7 @@ func (api *ServerApi) handleEventClient(socket *websocket.Conn) {
 
 	// by now the client was successfully authenticated
 	// we're going to register the user to the teamserver
-	api.teamserver.UserLogin(token, login, socket)
+	api.havoc.UserLogin(token, login, socket)
 
 	// this loop is just there to check the state of the connection
 	// and if the client somehow disconnected from the connection.
@@ -327,7 +339,7 @@ func (api *ServerApi) handleEventClient(socket *websocket.Conn) {
 
 		// log out the connected user client and send
 		// a broadcast event to every connected client
-		if err = api.teamserver.UserLogoutByToken(token); err != nil {
+		if err = api.havoc.UserLogoutByToken(token); err != nil {
 			logger.DebugError("failed to logout user by token: %v", err)
 		}
 

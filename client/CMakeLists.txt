@@ -23,7 +23,7 @@ add_definitions( -DQT_NO_DEBUG_OUTPUT )
 ##
 ## compiler flags
 ##
-set( CMAKE_CXX_FLAGS "-Wattributes -lssl -lcrypto" )
+set( CMAKE_CXX_FLAGS "-Wattributes -fvisibility-inlines-hidden -lssl -lcrypto" )
 
 ##
 ## include header directories
@@ -49,6 +49,7 @@ set( HAVOC_INCLUDE
         include/core/HcAgent.h
         include/core/HcHeartbeatWorker.h
         include/core/HcStorePluginWorker.h
+        include/core/HcMetaWorker.h
 
         include/api/Engine.h
         include/api/HcCore.h
@@ -86,6 +87,7 @@ set( HAVOC_SRC
         src/core/HcAgent.cc
         src/core/HcHeartbeatWorker.cc
         src/core/HcStorePluginWorker.cc
+        src/core/HcMetaWorker.cc
 
         src/ui/HcConnectDialog.cc
         src/ui/HcMainWindow.cc

@@ -184,6 +184,7 @@ auto HcPageAgent::addAgent(
     auto tid     = QString();
     auto system  = QString();
     auto last    = QString();
+    auto note    = QString();
     auto row     = AgentTable->rowCount();
     auto sort    = AgentTable->isSortingEnabled();
 
@@ -192,6 +193,7 @@ auto HcPageAgent::addAgent(
     //
 
     uuid    = QString( metadata[ "uuid" ].get<std::string>().c_str() );
+    note    = QString( metadata[ "note" ].get<std::string>().c_str() );
     user    = QString( metadata[ "meta" ][ "user" ].get<std::string>().c_str() );
     arch    = QString( metadata[ "meta" ][ "arch" ].get<std::string>().c_str() );
     host    = QString( metadata[ "meta" ][ "host" ].get<std::string>().c_str() );
@@ -219,7 +221,7 @@ auto HcPageAgent::addAgent(
             .ThreadId    = new HcAgentTableItem( tid ),
             .Arch        = new HcAgentTableItem( arch ),
             .System      = new HcAgentTableItem( system ),
-            .Note        = new HcAgentTableItem( "", Qt::NoItemFlags, Qt::AlignVCenter ),
+            .Note        = new HcAgentTableItem( note, Qt::NoItemFlags, Qt::AlignVCenter ),
             .Last        = new HcAgentTableItem( last ),
         }
     };
@@ -286,7 +288,7 @@ auto HcPageAgent::addAgent(
         }
     }
 
-    AgentDisplayerTargets->setText( QString( "Targets: %1" ).arg( agents.size() ) ); /* TODO: all targets (only show one host) */
+    AgentDisplayerTargets->setText( QString( "Targets: %1" ).arg( agents.size() ) );   /* TODO: all targets (only show one host)        */
     AgentDisplayerSessions->setText( QString( "Sessions: %1" ).arg( agents.size() ) ); /* TODO: only set current alive beacons/sessions */
     AgentDisplayerPivots->setText( "Pivots: 0" );
     AgentDisplayerElevated->setText( "Elevated: 0" );

@@ -56,43 +56,7 @@ auto HavocClient::eventDispatch(
             return;
         }
 
-        if ( data.contains( "name" ) ) {
-            if ( data[ "name" ].is_string() ) {
-                name = data[ "name" ].get<std::string>().c_str();
-            } else {
-                spdlog::error( "invalid listener: \"name\" is not string" );
-                return;
-            }
-        } else {
-            spdlog::error( "invalid listener: \"name\" is not found" );
-            return;
-        }
-
-        if ( data.contains( "status" ) ) {
-            if ( data[ "status" ].is_string() ) {
-                status = data[ "status" ].get<std::string>().c_str();
-            } else {
-                spdlog::error( "invalid listener: \"status\" is not string" );
-                return;
-            }
-        } else {
-            spdlog::error( "invalid listener: \"status\" is not found" );
-            return;
-        }
-
-        if ( ListenerObject( name ).has_value() ) {
-            //
-            // if listener already exists then change
-            // the status instead to being started or available
-            //
-            Gui->PageListener->setListenerStatus( name, status );
-        } else {
-            AddListener( data );
-        }
-    }
-    else if ( type == Event::listener::edit )
-    {
-
+        Gui->AddListener( data );
     }
     else if ( type == Event::listener::stop )
     {
@@ -238,9 +202,7 @@ auto HavocClient::eventDispatch(
             return;
         }
 
-        spdlog::debug( "Agent: {}", data.dump() );
-
-        Gui->PageAgent->addAgent( data );
+        Gui->AddAgent( data );
     }
     else if ( type == Event::agent::callback )
     {

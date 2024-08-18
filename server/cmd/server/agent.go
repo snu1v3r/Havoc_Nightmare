@@ -67,7 +67,7 @@ func (t *Teamserver) AgentNote(uuid, note string) error {
 		agent = value.(*Agent)
 		agent.note = note
 
-		t.UserBroadcast(true, t.EventCreate(EventAgentNote, map[string]any{
+		t.UserBroadcast(false, t.EventCreate(EventAgentNote, map[string]any{
 			"uuid": uuid,
 			"note": note,
 		}))
@@ -88,7 +88,7 @@ func (t *Teamserver) AgentExecute(uuid string, data map[string]any, wait bool) (
 	// load stored agent by uuid from map
 	if value, ok = t.agents.Load(uuid); ok {
 		agent = value.(*Agent)
-		return t.plugins.AgentExecute(agent._type, uuid, data, wait)
+		return t.plugins.AgentExecute(agent.plugin, uuid, data, wait)
 	}
 
 	return nil, errors.New("agent by uuid not found")

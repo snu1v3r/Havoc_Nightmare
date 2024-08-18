@@ -30,7 +30,7 @@ func (api *ServerApi) listenerStart(ctx *gin.Context) {
 		goto ERROR
 	}
 
-	logger.Debug("got request on /api/listener/start:" + fmt.Sprintf("%s", string(body)))
+	logger.Debug("got request on /api/listener/start: " + fmt.Sprintf("%s", string(body)))
 
 	// unmarshal the bytes into a map
 	if err = json.Unmarshal(body, &listener); err != nil {
@@ -77,7 +77,7 @@ func (api *ServerApi) listenerStart(ctx *gin.Context) {
 		}
 	}
 
-	if err = api.teamserver.ListenerStart(name, protocol, options); err != nil {
+	if err = api.havoc.ListenerStart(name, protocol, options); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -136,7 +136,7 @@ func (api *ServerApi) listenerStop(ctx *gin.Context) {
 		return
 	}
 
-	if err = api.teamserver.ListenerStop(name); err != nil {
+	if err = api.havoc.ListenerStop(name); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -192,7 +192,7 @@ func (api *ServerApi) listenerRestart(ctx *gin.Context) {
 		return
 	}
 
-	if err = api.teamserver.ListenerRestart(name); err != nil {
+	if err = api.havoc.ListenerRestart(name); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -248,7 +248,7 @@ func (api *ServerApi) listenerRemove(ctx *gin.Context) {
 		return
 	}
 
-	if err = api.teamserver.ListenerRemove(name); err != nil {
+	if err = api.havoc.ListenerRemove(name); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -316,7 +316,7 @@ func (api *ServerApi) listenerEdit(ctx *gin.Context) {
 	}
 
 	// process listener event
-	if err = api.teamserver.ListenerEdit(name, config); err != nil {
+	if err = api.havoc.ListenerEdit(name, config); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -372,7 +372,7 @@ func (api *ServerApi) listenerEvent(ctx *gin.Context) {
 	}
 
 	// process listener event
-	if event, err = api.teamserver.ListenerEvent(protocol, event); err != nil {
+	if event, err = api.havoc.ListenerEvent(protocol, event); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -429,7 +429,7 @@ func (api *ServerApi) listenerConfig(ctx *gin.Context) {
 	}
 
 	// process listener event
-	if config, err = api.teamserver.ListenerConfig(name); err != nil {
+	if config, err = api.havoc.ListenerConfig(name); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -441,4 +441,16 @@ func (api *ServerApi) listenerConfig(ctx *gin.Context) {
 
 ERROR:
 	ctx.AbortWithStatus(http.StatusInternalServerError)
+}
+
+func (api *ServerApi) listenerList(ctx *gin.Context) {
+	if !api.sanityCheck(ctx) {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	logger.Debug("got request on /api/listener/list")
+
+	ctx.JSON(http.StatusOK, api.havoc.ListenerList())
+	return
 }

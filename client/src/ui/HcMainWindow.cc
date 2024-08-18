@@ -239,6 +239,58 @@ auto HcMainWindow::MessageBox(
     message.exec();
 }
 
+auto HcMainWindow::AddListener(
+    const json& listener
+) const -> void {
+    auto name   = std::string();
+    auto status = std::string();
+
+    if ( listener.empty() ) {
+        spdlog::error( "HcMainWindow::AddListener: invalid package (data emtpy)" );
+        return;
+    }
+
+    if ( listener.contains( "name" ) ) {
+        if ( listener[ "name" ].is_string() ) {
+            name = listener[ "name" ].get<std::string>();
+        } else {
+            spdlog::error( "invalid listener: \"name\" is not string" );
+            return;
+        }
+    } else {
+        spdlog::error( "invalid listener: \"name\" is not found" );
+        return;
+    }
+
+    if ( listener.contains( "status" ) ) {
+        if ( listener[ "status" ].is_string() ) {
+            status = listener[ "status" ].get<std::string>().c_str();
+        } else {
+            spdlog::error( "invalid listener: \"status\" is not string" );
+            return;
+        }
+    } else {
+        spdlog::error( "invalid listener: \"status\" is not found" );
+        return;
+    }
+
+    if ( Havoc->ListenerObject( name ).has_value() ) {
+        //
+        // if listener already exists then change
+        // the status instead to being started or available
+        //
+        PageListener->setListenerStatus( name, status );
+    } else {
+        Havoc->AddListener( listener );
+    }
+}
+
+auto HcMainWindow::AddAgent(
+    const json& agent
+) -> void {
+    PageAgent->addAgent( agent );
+}
+
 HavocButton::HavocButton(
     QWidget *w
 ) : QPushButton( w ) {
@@ -255,4 +307,3 @@ auto HavocButton::setUsed(
 }
 
 auto HavocButton::currentlyUsed() const -> bool { return buttonUsed; }
-

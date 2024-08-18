@@ -18,6 +18,8 @@ void HcEventWorker::run() {
     QObject::connect( WebSocket, &QWebSocket::disconnected,          this, &HcEventWorker::closed );
     QObject::connect( WebSocket, &QWebSocket::binaryMessageReceived, this, &HcEventWorker::receivedEvent );
 
+    spdlog::debug( "HcEventWorker::run" );
+
     WebSocket->open( "wss://" + Host + "/api/event" );
 }
 

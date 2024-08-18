@@ -10,6 +10,7 @@ class HcMainWindow;
 #include <core/HcHelper.h>
 #include <core/HcEventWorker.h>
 #include <core/HcHeartbeatWorker.h>
+#include <core/HcMetaWorker.h>
 
 #include <ui/HcPageAgent.h>
 #include <ui/HcPageListener.h>
@@ -26,6 +27,12 @@ class HcMainWindow;
 
 #define HAVOC_VERSION  "1.0"
 #define HAVOC_CODENAME "King Of The Damned"
+
+template <typename T>
+struct HcWorker {
+    QThread* Thread;
+    T*       Worker;
+};
 
 class HavocClient : public QWidget {
 
@@ -77,15 +84,9 @@ private:
         std::string Token;
     } Profile;
 
-    struct {
-        QThread*     Thread;
-        HcEventWorker* Worker;
-    } Events;
-
-    struct {
-        QThread*           Thread;
-        HcHeartbeatWorker* Worker;
-    } Heartbeat;
+    HcWorker<HcEventWorker>     Events;
+    HcWorker<HcHeartbeatWorker> Heartbeat;
+    HcWorker<HcMetaWorker>      MetaWorker;
 
     std::vector<json>          listeners = {};
     std::vector<NamedObject>   protocols = {};
@@ -101,10 +102,7 @@ public:
     toml_t        Config = {};
     HcTheme       Theme;
 
-    struct {
-        QThread*    Thread;
-        HcPyEngine* Engine;
-    } Python;
+    HcPyEngine* PyEngine;
 
     /* havoc client constructor and destructor */
     explicit HavocClient();

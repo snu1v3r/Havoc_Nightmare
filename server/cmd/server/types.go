@@ -47,10 +47,17 @@ type Handler struct {
 }
 
 type Agent struct {
-	uuid  string
-	_type string
-	note  string
-	data  map[string]any
+	uuid string
+
+	// plugin is agent type
+	plugin string
+
+	// status of agent which can be custom such as: healthy, timeout, etc.
+	// the status string can be prefixed with an + (green), - (red), and * (cyan)
+	status string
+
+	// note of agent
+	note string
 }
 
 type Teamserver struct {
@@ -64,10 +71,12 @@ type Teamserver struct {
 		list  []map[string]any
 	}
 
-	clients   sync.Map
-	plugins   *plugin.PluginSystem
+	clients sync.Map
+	plugins *plugin.PluginSystem
+
 	protocols []Handler // available handlers/listeners to use
 	listener  []Handler // started listeners
-	payloads  []Handler // available payloads
-	agents    sync.Map  // current connected agents
+
+	payloads []Handler // available payloads
+	agents   sync.Map  // current connected agents
 }

@@ -79,7 +79,7 @@ func (t *Teamserver) UserLogin(token string, login any, socket *websocket.Conn) 
 	t.events.mutex.Unlock()
 
 	// broadcast that we have new client connected
-	t.UserBroadcast(true, t.EventCreate(EventUserLogin, map[string]any{
+	t.UserBroadcast(false, t.EventCreate(EventUserLogin, map[string]any{
 		"username": user,
 	}))
 }
@@ -104,7 +104,7 @@ func (t *Teamserver) UserLogoutByToken(token string) error {
 
 	// broadcast to every connected client
 	// that this user has been disconnected
-	t.UserBroadcast(true, t.EventCreate(EventUserLogout, map[string]any{
+	t.UserBroadcast(false, t.EventCreate(EventUserLogout, map[string]any{
 		"username": user.username,
 	}))
 

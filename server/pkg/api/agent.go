@@ -85,7 +85,7 @@ func (api *ServerApi) agentBuild(ctx *gin.Context) {
 	//
 	// interact with the plugin to generate a payload
 	//
-	name, body, cfg, err = api.teamserver.AgentGenerate(context, config)
+	name, body, cfg, err = api.havoc.AgentGenerate(context, config)
 	if err != nil {
 		logger.DebugError("Failed to generate agent payload: %v", err)
 		goto ERROR
@@ -169,7 +169,7 @@ func (api *ServerApi) agentExecute(ctx *gin.Context) {
 	}
 
 	// interact with the plugin to generate a payload
-	response, err = api.teamserver.AgentExecute(uuid, data, wait)
+	response, err = api.havoc.AgentExecute(uuid, data, wait)
 	if err != nil {
 		logger.DebugError("Failed to execute agent command: %v", err)
 		err = fmt.Errorf("failed to execute command: %v", err)
@@ -245,7 +245,7 @@ func (api *ServerApi) agentNote(ctx *gin.Context) {
 		goto ERROR
 	}
 
-	err = api.teamserver.AgentNote(uuid, note)
+	err = api.havoc.AgentNote(uuid, note)
 	if err != nil {
 		err = fmt.Errorf("failed to set agent note: %v", err)
 		goto ERROR
@@ -259,4 +259,67 @@ ERROR:
 	ctx.JSON(http.StatusInternalServerError, gin.H{
 		"error": err.Error(),
 	})
+}
+
+func (api *ServerApi) agentList(ctx *gin.Context) {
+	var (
+		err    error
+		array  []string
+		list   []map[string]any
+		agent  map[string]any
+		plugin string
+		note   string
+	)
+
+	if !api.sanityCheck(ctx) {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	logger.Debug("/api/agent/list")
+
+	array = api.havoc.ServerAgentList()
+	for _, uuid := range array {
+		if plugin, err = api.havoc.ServerAgentType(uuid); err != nil {
+			logger.DebugError("failed to get agent type: %v", err)
+			goto ERROR
+		}
+
+		if note, err = api.havoc.ServerAgentNote(uuid); err != nil {
+			logger.DebugError("failed to get agent note: %v", err)
+			goto ERROR
+		}
+
+		if agent, err = api.havoc.ServerAgent(uuid); err != nil {
+			logger.DebugError("failed to get agent info: %v", err)
+			goto ERROR
+		}
+
+		list = append(list, map[string]any{
+			"uuid": uuid,
+			"type": plugin,
+			"meta": agent,
+			"note": note,
+		})
+	}
+
+	// send back response
+	ctx.JSON(http.StatusOK, list)
+	return
+
+ERROR:
+	ctx.JSON(http.StatusInternalServerError, gin.H{
+		"error": err.Error(),
+	})
+}
+
+func (api *ServerApi) agentConsole(ctx *gin.Context) {
+
+	if !api.sanityCheck(ctx) {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	ctx.AbortWithStatus(http.StatusOK)
+	return
 }

@@ -64,10 +64,19 @@ public:
     auto switchPageScripts() -> void;
     auto switchPageSettings() -> void;
 
+public Q_SLOT:
     auto MessageBox(
         QMessageBox::Icon  icon,
         const std::string& title,
         const std::string& text
+    ) -> void;
+
+    auto AddListener(
+        const json& listener
+    ) const -> void;
+
+    auto AddAgent(
+        const json& agent
     ) -> void;
 
 signals:
