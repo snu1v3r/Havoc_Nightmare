@@ -54,6 +54,10 @@ public:
         const std::string& path
     ) -> void;
 
+    auto AddScriptPath(
+        const QString& path
+    ) -> void;
+
 signals:
     auto SignalConsoleWrite(
         const QString& text

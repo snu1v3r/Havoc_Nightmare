@@ -239,6 +239,14 @@ public:
         const bool         keep_alive = false
     ) const -> httplib::Result;
 
+    //
+    // Scripts Manager
+    //
+
+    auto ScriptLoad(
+        const std::string& path
+    ) -> void;
+
 Q_SIGNALS:
     /* signals */
     auto eventHandle(

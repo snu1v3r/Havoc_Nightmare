@@ -13,6 +13,9 @@ HcMetaWorker::~HcMetaWorker() = default;
 
 //
 // TODO: pull agent console as well if configured
+//       handle race condition when agent/listener
+//       gets created inbetween the eventWorkerRun
+//       and after the pulling has been done
 //
 
 void HcMetaWorker::run() {

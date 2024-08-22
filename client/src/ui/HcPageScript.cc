@@ -59,6 +59,8 @@ HcPagePlugins::HcPagePlugins()
     TablePluginsWidget->horizontalHeader()->setStretchLastSection( true );
     TablePluginsWidget->verticalHeader()->setVisible( false );
     TablePluginsWidget->setFocusPolicy( Qt::NoFocus );
+    TablePluginsWidget->setAlternatingRowColors( true );
+
 
     PyConsole = new HcPyConsole( splitter );
 
@@ -208,7 +210,7 @@ auto HcPagePlugins::retranslateUi() -> void {
     setWindowTitle( "PagePlugins" );
     setStyleSheet( Havoc->StyleSheet() );
     ButtonLoad->setText( "Load Plugin" );
-    LabelLoadedPlugins->setText( "Loaded: 0" );
+    LabelLoadedPlugins->setText( std::format( "Loaded: {}", TablePluginsWidget->rowCount() ).c_str() );
 }
 
 auto HcPagePlugins::LoadScript(
@@ -224,6 +226,8 @@ auto HcPagePlugins::LoadScript(
     if ( LoadCallback.has_value() ) {
         try {
             LoadCallback.value()( path );
+
+            AddScriptPath( path.c_str() );
         } catch ( py11::error_already_set &eas ) {
             spdlog::error( "failed to load script {}: \n{}", path, eas.what() );
             PyConsole->append( std::format( "failed to load script {}: \n{}", path, eas.what() ).c_str() );
@@ -231,6 +235,20 @@ auto HcPagePlugins::LoadScript(
     } else {
         spdlog::debug( "PageScripts->LoadCallback not set" );
     }
+}
+
+auto HcPagePlugins::AddScriptPath(
+    const QString& path
+) -> void {
+    auto row  = TablePluginsWidget->rowCount();
+    auto sort = TablePluginsWidget->isSortingEnabled();
+
+    TablePluginsWidget->setRowCount( row + 1 );
+    TablePluginsWidget->setSortingEnabled( false );
+    TablePluginsWidget->setItem( row, 0, new QTableWidgetItem( QFileInfo( path ).canonicalFilePath() ) );
+    TablePluginsWidget->setSortingEnabled( sort );
+
+    retranslateUi();
 }
 
 HcPyConsole::HcPyConsole(

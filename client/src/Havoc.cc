@@ -228,7 +228,7 @@ auto HavocClient::Main(
                     continue;
                 }
 
-                Gui->PageScripts->LoadScript( file.as_string() );
+                ScriptLoad( file.as_string() );
             }
         }
     }
@@ -669,6 +669,12 @@ auto HavocClient::Actions(
     }
 
     return actions_type;
+}
+
+auto HavocClient::ScriptLoad(
+    const std::string& path
+) -> void {
+    Gui->PageScripts->LoadScript( path );
 }
 
 HavocClient::ActionObject::ActionObject() {}
