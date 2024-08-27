@@ -9,10 +9,15 @@ set( CMAKE_CXX_STANDARD 20 )
 set( CMAKE_AUTOMOC ON )
 set( CMAKE_AUTORCC ON )
 set( CMAKE_AUTOUIC ON )
+set( CMAKE_RUNTIME_OUTPUT_DIRECTORY .. )
+
+##
+## build parameter
+##
 set( QT_VERSION 6 )
+set( PYTHON_VERSION 3 )
 set( REQUIRED_LIBS Core Gui Widgets Network WebSockets Designer Core5Compat )
 set( REQUIRED_LIBS_QUALIFIED Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::WebSockets Qt6::Designer Qt6::Core5Compat )
-set( CMAKE_RUNTIME_OUTPUT_DIRECTORY .. )
 set( APP_ICON_RESOURCE_WINDOWS "data/Havoc.qrc" )
 
 ##
@@ -29,12 +34,25 @@ set( CMAKE_CXX_FLAGS "-Wattributes -fvisibility-inlines-hidden -lssl -lcrypto" )
 ## include header directories
 ##
 include_directories( include )
-include_directories( extern/pybind11/include )
 include_directories( extern/pybind11_json/include )
 include_directories( extern/json/include )
 include_directories( extern/spdlog/include )
 include_directories( extern/toml )
 include_directories( extern/http )
+
+##
+## packages
+##
+find_package( OpenSSL REQUIRED )
+find_package( Python ${PYTHON_VERSION} COMPONENTS Interpreter Development REQUIRED )
+find_package( Qt${QT_VERSION} COMPONENTS ${REQUIRED_LIBS} REQUIRED )
+
+link_directories( ${Python_LIBRARY_DIRS} )
+
+##
+## submodules
+##
+add_subdirectory( extern/pybind11 )
 
 ##
 ## Havoc include
@@ -112,39 +130,18 @@ set( HAVOC_SRC
         src/api/HcListener.cc
 )
 
-find_package( OpenSSL REQUIRED )
-find_package( PythonLibs REQUIRED )
-
 ##
-## Linking
+## build the executable
 ##
-
-##
-## python finding and handling
-##
-find_package( Python 3 COMPONENTS Interpreter Development REQUIRED )
-set( PYTHON_MAJOR $ENV{Python_VERSION_MAJOR} )
-set( PYTHON_MINOR $ENV{Python_VERSION_MINOR} )
-set( PYTHONLIBS_VERSION_STRING ${Python_VERSION} )
-set( PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIRS} )
-set( PYTHON_LIBRARIES ${Python_LIBRARIES} )
-include_directories( ${PYTHON_INCLUDE_DIRS} )
-
-##
-## qt finding and handling
-##
-find_package( Qt${QT_VERSION} COMPONENTS ${REQUIRED_LIBS} REQUIRED )
-
-## 
-## build the executable 
-## 
 add_executable( ${BINARY_NAME} ${HAVOC_INCLUDE} ${HAVOC_SRC} ${APP_ICON_RESOURCE_WINDOWS} )
 
 ##
 ## linking external libraries
 ##
-target_link_libraries( ${BINARY_NAME} PRIVATE 
-  ${REQUIRED_LIBS_QUALIFIED} 
-  ${PYTHON_LIBRARIES} 
-  OpenSSL::Crypto
+target_link_libraries( ${BINARY_NAME} PRIVATE
+        ${REQUIRED_LIBS_QUALIFIED}
+        ${Python_LIBRARIES}
+        OpenSSL::SSL
+        OpenSSL::Crypto
+        pybind11::embed
 )
