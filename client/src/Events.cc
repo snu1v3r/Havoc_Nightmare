@@ -217,8 +217,6 @@ auto HavocClient::eventDispatch(
             return;
         }
 
-        spdlog::debug( "Event::agent::callback -> {}", data.dump() );
-
         if ( data.contains( "uuid" ) ) {
             if ( data[ "uuid" ].is_string() ) {
                 uuid = data[ "uuid" ].get<std::string>();

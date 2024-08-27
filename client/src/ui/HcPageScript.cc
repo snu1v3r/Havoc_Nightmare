@@ -242,10 +242,13 @@ auto HcPagePlugins::AddScriptPath(
 ) -> void {
     auto row  = TablePluginsWidget->rowCount();
     auto sort = TablePluginsWidget->isSortingEnabled();
+    auto item = new QTableWidgetItem( QFileInfo( path ).canonicalFilePath() );
+
+    item->setFlags( item->flags() ^ Qt::ItemIsEditable );
 
     TablePluginsWidget->setRowCount( row + 1 );
     TablePluginsWidget->setSortingEnabled( false );
-    TablePluginsWidget->setItem( row, 0, new QTableWidgetItem( QFileInfo( path ).canonicalFilePath() ) );
+    TablePluginsWidget->setItem( row, 0, item );
     TablePluginsWidget->setSortingEnabled( sort );
 
     retranslateUi();

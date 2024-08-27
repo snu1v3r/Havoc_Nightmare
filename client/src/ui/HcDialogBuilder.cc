@@ -100,7 +100,7 @@ HcDialogBuilder::~HcDialogBuilder() {
 auto HcDialogBuilder::retranslateUi() -> void {
     setWindowTitle( "Payload Builder" );
 
-    setStyleSheet( Havoc->StyleSheet() );
+    setStyleSheet( HavocClient::StyleSheet() );
     resize( 900, 880 );
 
     ComboPayload->addItem( "(no payload available)" );
@@ -126,9 +126,9 @@ auto HcDialogBuilder::AddBuilder(
     builder.widget->setObjectName( objname );
     builder.widget->setStyleSheet( "#" + objname + "{ background: " + Havoc->Theme.getBackground().name() + "}" );
 
-    py11::gil_scoped_acquire gil;
-
     try {
+        py11::gil_scoped_acquire gil;
+
         builder.instance = object( U_PTR( builder.widget ), U_PTR( this ), name );
         builder.instance.attr( "_hc_main" )();
     } catch ( py11::error_already_set &eas ) {
@@ -241,15 +241,15 @@ auto HcDialogBuilder::PressedGenerate() -> void
         if ( ( result = Havoc->ApiSend( "/api/agent/build", data ) ) ) {
             if ( result->status != 200 ) {
                 if ( ( data = json::parse( result->body ) ).is_discarded() ) {
-                    goto InvalidServerResponseError;
+                    goto ERROR_SERVER_RESPONSE;
                 }
 
                 if ( ! data.contains( "error" ) ) {
-                    goto InvalidServerResponseError;
+                    goto ERROR_SERVER_RESPONSE;
                 }
 
                 if ( ! data[ "error" ].is_string() ) {
-                    goto InvalidServerResponseError;
+                    goto ERROR_SERVER_RESPONSE;
                 }
 
                 Helper::MessageBox(
@@ -265,7 +265,7 @@ auto HcDialogBuilder::PressedGenerate() -> void
                 auto context = json();
 
                 if ( ( data = json::parse( result->body ) ).is_discarded() ) {
-                    goto InvalidServerResponseError;
+                    goto ERROR_SERVER_RESPONSE;
                 }
 
                 //
@@ -413,7 +413,7 @@ auto HcDialogBuilder::PressedGenerate() -> void
         return;
     }
 
-InvalidServerResponseError:
+ERROR_SERVER_RESPONSE:
     Helper::MessageBox(
         QMessageBox::Critical,
         "Payload build failure",
