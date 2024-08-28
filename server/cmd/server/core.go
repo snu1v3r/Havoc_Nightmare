@@ -56,16 +56,15 @@ func (t *Teamserver) Start() {
 
 	// load all plugins that has been specified in the folder
 	if len(server.Plugins) != 0 {
-		logger.Info("loading plugins [%v]:", len(server.Plugins))
 		for i := range server.Plugins {
 			var ext *plugin.Plugin
 
 			if ext, err = t.plugins.RegisterPlugin(server.Plugins[i]); err != nil {
-				logger.Error("failed to load plugin: %v", err)
+				logger.Info("%s failed to load plugin: %v", colors.BoldBlue("[plugin]"), colors.Red(err))
 			}
 
 			if ext != nil {
-				logger.Info(" %v plugin loaded => \"%v\"", colors.BoldBlue("*"), colors.BoldBlue(ext.Name))
+				logger.Info("%s loaded: %v", colors.BoldBlue("[plugin]"), colors.BoldBlue(ext.Name))
 			}
 		}
 	}
