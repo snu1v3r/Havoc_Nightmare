@@ -2,7 +2,7 @@ package plugin
 
 import "errors"
 
-func (s *PluginSystem) ListenerStart(name, protocol string, options map[string]any) (map[string]string, error) {
+func (s *System) ListenerStart(name, protocol string, options map[string]any) (map[string]string, error) {
 	var (
 		data map[string]string
 		err  error
@@ -29,7 +29,7 @@ func (s *PluginSystem) ListenerStart(name, protocol string, options map[string]a
 	return data, err
 }
 
-func (s *PluginSystem) ListenerRemove(name, protocol string) error {
+func (s *System) ListenerRemove(name, protocol string) error {
 	var (
 		err error
 		ext *Plugin
@@ -55,7 +55,7 @@ func (s *PluginSystem) ListenerRemove(name, protocol string) error {
 	return err
 }
 
-func (s *PluginSystem) ListenerRestart(name, protocol string) (string, error) {
+func (s *System) ListenerRestart(name, protocol string) (string, error) {
 	var (
 		status string
 		err    error
@@ -82,7 +82,7 @@ func (s *PluginSystem) ListenerRestart(name, protocol string) (string, error) {
 	return status, err
 }
 
-func (s *PluginSystem) ListenerStop(name, protocol string) (string, error) {
+func (s *System) ListenerStop(name, protocol string) (string, error) {
 	var (
 		status string
 		err    error
@@ -109,7 +109,7 @@ func (s *PluginSystem) ListenerStop(name, protocol string) (string, error) {
 	return status, err
 }
 
-func (s *PluginSystem) ListenerEvent(name string, event map[string]any) (map[string]any, error) {
+func (s *System) ListenerEvent(name string, event map[string]any) (map[string]any, error) {
 	var (
 		err      error
 		ext      *Plugin
@@ -141,7 +141,7 @@ func (s *PluginSystem) ListenerEvent(name string, event map[string]any) (map[str
 	return resp, err
 }
 
-func (s *PluginSystem) ListenerConfig(name string) (map[string]any, error) {
+func (s *System) ListenerConfig(name string) (map[string]any, error) {
 	var (
 		data     map[string]any
 		err      error
@@ -173,7 +173,7 @@ func (s *PluginSystem) ListenerConfig(name string) (map[string]any, error) {
 	return data, err
 }
 
-func (s *PluginSystem) ListenerEdit(name string, config map[string]any) error {
+func (s *System) ListenerEdit(name string, config map[string]any) error {
 	var (
 		err      error
 		ext      *Plugin

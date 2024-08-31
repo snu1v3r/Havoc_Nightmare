@@ -72,7 +72,7 @@ type Teamserver struct {
 	}
 
 	clients sync.Map
-	plugins *plugin.PluginSystem
+	plugins *plugin.System
 
 	protocols []Handler // available handlers/listeners to use
 	listener  []Handler // started listeners

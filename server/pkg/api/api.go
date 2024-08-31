@@ -2,6 +2,7 @@ package api
 
 import (
 	"Havoc/pkg/cert"
+	"Havoc/pkg/colors"
 	"Havoc/pkg/logger"
 	"errors"
 	"github.com/gin-gonic/gin"
@@ -122,17 +123,16 @@ func NewServerApi(teamserver teamserver) (*ServerApi, error) {
 
 // Start the server api
 // generates an HTTP certificate and then starts the api server
-func (api *ServerApi) Start(host, port string, finished *chan bool) {
+func (api *ServerApi) Start(host, port string) {
 	var err error
+
+	logger.Info("starting server on %v", colors.BlueUnderline("https://"+host+":"+port))
 
 	// start the api server
 	if err = api.Engine.RunTLS(host+":"+port, api.ssl.cert, api.ssl.key); err != nil {
 		logger.Error("Failed to start webserver: " + err.Error())
 		return
 	}
-
-	// signal that we finished
-	*finished <- true
 }
 
 func (api *ServerApi) GenerateSSL(host, certsPath string) (string, string, error) {

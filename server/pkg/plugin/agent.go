@@ -2,7 +2,7 @@ package plugin
 
 import "errors"
 
-func (s *PluginSystem) AgentGenerate(ctx map[string]any, config map[string]any) (string, []byte, map[string]any, error) {
+func (s *System) AgentGenerate(ctx map[string]any, config map[string]any) (string, []byte, map[string]any, error) {
 	var (
 		err  error
 		ext  *Plugin
@@ -31,7 +31,7 @@ func (s *PluginSystem) AgentGenerate(ctx map[string]any, config map[string]any) 
 	return name, bin, cfg, err
 }
 
-func (s *PluginSystem) AgentExecute(plugin, uuid string, data map[string]any, wait bool) (map[string]any, error) {
+func (s *System) AgentExecute(plugin, uuid string, data map[string]any, wait bool) (map[string]any, error) {
 	var (
 		resp map[string]any
 		err  error
@@ -58,7 +58,7 @@ func (s *PluginSystem) AgentExecute(plugin, uuid string, data map[string]any, wa
 	return resp, err
 }
 
-func (s *PluginSystem) AgentProcess(ctx map[string]any, request []byte) ([]byte, error) {
+func (s *System) AgentProcess(ctx map[string]any, request []byte) ([]byte, error) {
 	var (
 		err error
 		ext *Plugin
@@ -85,7 +85,7 @@ func (s *PluginSystem) AgentProcess(ctx map[string]any, request []byte) ([]byte,
 	return res, err
 }
 
-func (s *PluginSystem) AgentGet(plugin, uuid string) (map[string]any, error) {
+func (s *System) AgentGet(plugin, uuid string) (map[string]any, error) {
 	var (
 		err error
 		ext *Plugin

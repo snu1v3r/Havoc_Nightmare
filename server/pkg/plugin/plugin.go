@@ -71,7 +71,7 @@ type Plugin struct {
 	ManagementInterface
 }
 
-type PluginSystem struct {
+type System struct {
 	// havoc teamserver instance that is
 	// going to be passed to every loaded plugin
 	havoc HavocInterface
@@ -84,16 +84,14 @@ type PluginSystem struct {
 
 // NewPluginSystem
 // create a new plugin system instance
-func NewPluginSystem(havoc HavocInterface) *PluginSystem {
-	var ps = new(PluginSystem)
-
-	ps.havoc = havoc
-
-	return ps
+func NewPluginSystem(havoc HavocInterface) *System {
+	return &System{
+		havoc: havoc,
+	}
 }
 
 // RegisterPlugin is going to register a specified havoc plugin
-func (s *PluginSystem) RegisterPlugin(path string) (*Plugin, error) {
+func (s *System) RegisterPlugin(path string) (*Plugin, error) {
 	var (
 		err      error
 		open     *plugin.Plugin
@@ -140,7 +138,7 @@ func (s *PluginSystem) RegisterPlugin(path string) (*Plugin, error) {
 // AddPlugin the registered plugin to see if there
 // wasn't given any faulty or lacking info and
 // creates a havoc Plugin object
-func (s *PluginSystem) AddPlugin(register map[string]any, inter any) (*Plugin, error) {
+func (s *System) AddPlugin(register map[string]any, inter any) (*Plugin, error) {
 	var (
 		ext = new(Plugin)
 		err error
@@ -201,7 +199,7 @@ func (s *PluginSystem) AddPlugin(register map[string]any, inter any) (*Plugin, e
 // this method checks if a specific plugin is exporting all the
 // needed methods for the returned plugin type, if it does then
 // cast the right interface to the plugin object
-func (s *PluginSystem) CheckAndInsertInterface(extension *Plugin, inter any) error {
+func (s *System) CheckAndInsertInterface(extension *Plugin, inter any) error {
 	var (
 		reflection = reflect.TypeOf(inter)
 		ok         bool
@@ -297,7 +295,7 @@ func (s *PluginSystem) CheckAndInsertInterface(extension *Plugin, inter any) err
 // interactPlugin
 // interact with plugin by calling the plugin
 // register function for the type of plugin
-func (s *PluginSystem) interactPlugin(extension *Plugin) error {
+func (s *System) interactPlugin(extension *Plugin) error {
 
 	switch extension.Type {
 	case TypeAgent:

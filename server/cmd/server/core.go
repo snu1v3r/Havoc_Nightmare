@@ -1,12 +1,13 @@
 package server
 
 import (
+	"os"
+
 	"Havoc/pkg/api"
 	"Havoc/pkg/colors"
 	"Havoc/pkg/logger"
 	"Havoc/pkg/plugin"
 	"Havoc/pkg/profile"
-	"os"
 )
 
 var (
@@ -34,7 +35,6 @@ func (t *Teamserver) SetServerFlags(flags TeamserverFlags) {
 
 func (t *Teamserver) Start() {
 	var (
-		ServerFinished    chan bool
 		err               error
 		server            profile.Server
 		certPath, keyPath string
@@ -92,17 +92,7 @@ func (t *Teamserver) Start() {
 		}
 	}
 
-	// start the api server
-	go t.Server.Start(server.Host, server.Port, &ServerFinished)
-
-	logger.Info("starting server on %v", colors.BlueUnderline("https://"+server.Host+":"+server.Port))
-
-	// this should hold the Teamserver as long as the WebSocket Server is running
-	logger.Debug("wait for server shutdown")
-	<-ServerFinished
-
-	logger.Warn("havoc server finished running")
-	os.Exit(0)
+	t.Server.Start(server.Host, server.Port)
 }
 
 // Version
