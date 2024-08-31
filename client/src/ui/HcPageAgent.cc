@@ -253,12 +253,6 @@ auto HcPageAgent::addAgent(
         spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta process name" );
     }
 
-    if ( meta.contains( "process name" ) && meta[ "process name" ].is_string() ) {
-        process = QString( meta[ "process name" ].get<std::string>().c_str() );
-    } else {
-        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta process name" );
-    }
-
     if ( meta.contains( "pid" ) && meta[ "pid" ].is_number_integer() ) {
         pid = QString::number( meta[ "pid" ].get<int>() );
     } else {
