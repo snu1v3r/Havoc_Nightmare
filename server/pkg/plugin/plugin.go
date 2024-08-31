@@ -10,16 +10,10 @@ import (
 )
 
 const (
-	PluginTypeListener   = "listener"
-	PluginTypeAgent      = "agent"
-	PluginTypeManagement = "management"
+	TypeListener   = "listener"
+	TypeAgent      = "agent"
+	TypeManagement = "management"
 )
-
-type PluginListener struct {
-	Name    string
-	Type    string
-	Options map[string]any
-}
 
 type HavocInterface interface {
 	LogInfo(fmt string, args ...any)
@@ -67,6 +61,8 @@ type Plugin struct {
 	Name string
 	Type string
 	Data map[string]any
+
+	// either the listener protocol name or the agent type name
 
 	// the loaded plugin interface that are callable
 	BasicInterface
@@ -212,7 +208,7 @@ func (s *PluginSystem) CheckAndInsertInterface(extension *Plugin, inter any) err
 	)
 
 	switch extension.Type {
-	case PluginTypeAgent:
+	case TypeAgent:
 
 		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("AgentRegister"); !ok {
@@ -240,7 +236,7 @@ func (s *PluginSystem) CheckAndInsertInterface(extension *Plugin, inter any) err
 
 		break
 
-	case PluginTypeListener:
+	case TypeListener:
 
 		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("ListenerRegister"); !ok {
@@ -288,7 +284,7 @@ func (s *PluginSystem) CheckAndInsertInterface(extension *Plugin, inter any) err
 
 		break
 
-	case PluginTypeManagement:
+	case TypeManagement:
 		break
 
 	default:
@@ -304,23 +300,25 @@ func (s *PluginSystem) CheckAndInsertInterface(extension *Plugin, inter any) err
 func (s *PluginSystem) interactPlugin(extension *Plugin) error {
 
 	switch extension.Type {
-	case PluginTypeAgent:
+	case TypeAgent:
 
-		if err := s.havoc.AgentRegisterType(extension.Name, extension.AgentRegister()); err != nil {
+		extension.Data = extension.AgentRegister()
+		if err := s.havoc.AgentRegisterType(extension.Name, extension.Data); err != nil {
 			return err
 		}
 
 		break
 
-	case PluginTypeListener:
+	case TypeListener:
 
-		if err := s.havoc.ListenerRegister(extension.Name, extension.ListenerRegister()); err != nil {
+		extension.Data = extension.ListenerRegister()
+		if err := s.havoc.ListenerRegister(extension.Name, extension.Data); err != nil {
 			return err
 		}
 
 		break
 
-	case PluginTypeManagement:
+	case TypeManagement:
 		break
 
 	default:

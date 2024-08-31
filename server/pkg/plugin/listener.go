@@ -14,11 +14,11 @@ func (s *PluginSystem) ListenerStart(name, protocol string, options map[string]a
 	s.loaded.Range(func(key, value any) bool {
 		ext = value.(*Plugin)
 
-		if ext.Type != PluginTypeListener {
+		if ext.Type != TypeListener {
 			return true
 		}
 
-		if protocol == ext.ListenerRegister()["protocol"].(string) {
+		if protocol == ext.Data["protocol"].(string) {
 			data, err = ext.ListenerStart(name, options)
 			return false
 		}
@@ -40,11 +40,11 @@ func (s *PluginSystem) ListenerRemove(name, protocol string) error {
 	s.loaded.Range(func(key, value any) bool {
 		ext = value.(*Plugin)
 
-		if ext.Type != PluginTypeListener {
+		if ext.Type != TypeListener {
 			return true
 		}
 
-		if protocol == ext.ListenerRegister()["protocol"].(string) {
+		if protocol == ext.Data["protocol"].(string) {
 			err = ext.ListenerRemove(name)
 			return false
 		}
@@ -67,11 +67,11 @@ func (s *PluginSystem) ListenerRestart(name, protocol string) (string, error) {
 	s.loaded.Range(func(key, value any) bool {
 		ext = value.(*Plugin)
 
-		if ext.Type != PluginTypeListener {
+		if ext.Type != TypeListener {
 			return true
 		}
 
-		if protocol == ext.ListenerRegister()["protocol"].(string) {
+		if protocol == ext.Data["protocol"].(string) {
 			status, err = ext.ListenerRestart(name)
 			return false
 		}
@@ -94,11 +94,11 @@ func (s *PluginSystem) ListenerStop(name, protocol string) (string, error) {
 	s.loaded.Range(func(key, value any) bool {
 		ext = value.(*Plugin)
 
-		if ext.Type != PluginTypeListener {
+		if ext.Type != TypeListener {
 			return true
 		}
 
-		if protocol == ext.ListenerRegister()["protocol"].(string) {
+		if protocol == ext.Data["protocol"].(string) {
 			status, err = ext.ListenerStop(name)
 			return false
 		}
@@ -126,11 +126,11 @@ func (s *PluginSystem) ListenerEvent(name string, event map[string]any) (map[str
 	s.loaded.Range(func(key, value any) bool {
 		ext = value.(*Plugin)
 
-		if ext.Type != PluginTypeListener {
+		if ext.Type != TypeListener {
 			return true
 		}
 
-		if protocol == ext.ListenerRegister()["protocol"].(string) {
+		if protocol == ext.Data["protocol"].(string) {
 			resp, err = ext.ListenerEvent(name, event)
 			return false
 		}
@@ -158,11 +158,11 @@ func (s *PluginSystem) ListenerConfig(name string) (map[string]any, error) {
 	s.loaded.Range(func(key, value any) bool {
 		ext = value.(*Plugin)
 
-		if ext.Type != PluginTypeListener {
+		if ext.Type != TypeListener {
 			return true
 		}
 
-		if protocol == ext.ListenerRegister()["protocol"].(string) {
+		if protocol == ext.Data["protocol"].(string) {
 			data, err = ext.ListenerConfig(name)
 			return false
 		}
@@ -189,11 +189,11 @@ func (s *PluginSystem) ListenerEdit(name string, config map[string]any) error {
 	s.loaded.Range(func(key, value any) bool {
 		ext = value.(*Plugin)
 
-		if ext.Type != PluginTypeListener {
+		if ext.Type != TypeListener {
 			return true
 		}
 
-		if protocol == ext.ListenerRegister()["protocol"].(string) {
+		if protocol == ext.Data["protocol"].(string) {
 			err = ext.ListenerEdit(name, config)
 			return false
 		}

@@ -7,7 +7,7 @@ all: ts-build client-build
 
 ts-compile:
 	@ echo "[*] compile server"
-	@ cd server; GO111MODULE="on" go build -ldflags="-s -w -X cmd.VersionCommit=$(git rev-parse HEAD)" -o ../havoc main.go 
+	@ cd server; GO111MODULE="on" go build -ldflags="-s -w" -o ../havoc main.go 
 
 ts-cleanup: 
 	@ echo "[*] teamserver cleanup"
