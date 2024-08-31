@@ -8,19 +8,8 @@
 #include <api/HcAgent.h>
 #include <api/HcListener.h>
 
-inline auto HcPythonReleaseGil() -> void {
-    //
-    // NOTE: this releases the gil in the current
-    //       thread by leaking the thread state
-    //
-    if ( PyGILState_Check() ) {
-        spdlog::debug( "HcPythonReleaseGil() = released gil" );
-        PyEval_SaveThread();
-    }
-}
-
-class HcPyEngine : public QThread {
-    Q_OBJECT
+class HcPyEngine {
+    PyThreadState* state = { 0 };
 
 public:
     py11::scoped_interpreter* guard{};
@@ -30,8 +19,6 @@ public:
 
     explicit HcPyEngine();
     ~HcPyEngine();
-
-    auto run() -> void;
 };
 
 #endif

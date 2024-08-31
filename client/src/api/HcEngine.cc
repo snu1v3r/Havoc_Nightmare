@@ -145,18 +145,15 @@ PYBIND11_EMBEDDED_MODULE( _pyhavoc, m ) {
     }
 }
 
-HcPyEngine::HcPyEngine()  = default;
-HcPyEngine::~HcPyEngine() = default;
-
-auto HcPyEngine::run() -> void {
+HcPyEngine::HcPyEngine() {
     auto exception = std::string();
 
     guard = new py11::scoped_interpreter;
 
     try {
         py11::module_::import( "sys" )
-            .attr( "path" )
-            .attr( "append" )( "python" );
+                .attr( "path" )
+                .attr( "append" )( "python" );
 
         py11::module_::import( "pyhavoc" );
     } catch ( py11::error_already_set &eas ) {
@@ -166,4 +163,17 @@ auto HcPyEngine::run() -> void {
     if ( ! exception.empty() ) {
         spdlog::error( "failed to import \"python.pyhavoc\": \n{}", exception );
     }
+
+    if ( PyGILState_Check() ) {
+        //
+        // release the current interpreter state to be available
+        // for other threads and scripts to be used
+        //
+        state = PyEval_SaveThread();
+    };
 }
+
+HcPyEngine::~HcPyEngine() {
+    PyThreadState_Clear( state );
+    PyThreadState_Delete( state );
+};

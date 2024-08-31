@@ -213,7 +213,6 @@ auto HavocClient::Main(
     // setup Python thread
     //
     PyEngine = new HcPyEngine();
-    PyEngine->run();
 
     //
     // load the registered scripts

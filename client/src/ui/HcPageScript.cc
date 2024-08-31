@@ -225,6 +225,8 @@ auto HcPagePlugins::LoadScript(
 
     if ( LoadCallback.has_value() ) {
         try {
+            auto gil = py11::gil_scoped_acquire();
+
             LoadCallback.value()( path );
 
             AddScriptPath( path.c_str() );

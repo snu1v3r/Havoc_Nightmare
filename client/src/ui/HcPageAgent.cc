@@ -635,8 +635,6 @@ auto HcAgentConsole::inputEnter(
     input = Input->text().toStdString();
     Input->clear();
 
-    HcPythonReleaseGil();
-
     //
     // invoke the command in a separate thread
     //
