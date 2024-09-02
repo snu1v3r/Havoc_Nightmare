@@ -29,6 +29,33 @@ func (s *System) ListenerStart(name, protocol string, options map[string]any) (m
 	return data, err
 }
 
+func (s *System) ListenerRestore(name, protocol, status string, config map[string]any) (map[string]string, error) {
+	var (
+		data map[string]string
+		err  error
+		ext  *Plugin
+	)
+
+	err = errors.New("protocol not found")
+
+	s.loaded.Range(func(key, value any) bool {
+		ext = value.(*Plugin)
+
+		if ext.Type != TypeListener {
+			return true
+		}
+
+		if protocol == ext.Data["protocol"].(string) {
+			data, err = ext.ListenerRestore(name, status, config)
+			return false
+		}
+
+		return true
+	})
+
+	return data, err
+}
+
 func (s *System) ListenerRemove(name, protocol string) error {
 	var (
 		err error

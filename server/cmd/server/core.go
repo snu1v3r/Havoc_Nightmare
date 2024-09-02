@@ -2,6 +2,7 @@ package server
 
 import (
 	"Havoc/pkg/db"
+	"encoding/gob"
 	"os"
 
 	"Havoc/pkg/api"
@@ -15,6 +16,11 @@ var (
 	Version  = "1.0"
 	CodeName = "King Of The Damned"
 )
+
+func init() {
+	gob.Register(map[string]any{})
+	gob.Register([]any{})
+}
 
 func NewTeamserver() *Teamserver {
 	var (
@@ -102,14 +108,14 @@ func (t *Teamserver) Start() {
 	}
 
 	// restore the agent sessions from the database
-	if err = t.RestoreAgents(); err != nil {
-		logger.Error("failed to restore agents from database: %v", colors.Red(err))
+	if err = t.RestoreListeners(); err != nil {
+		logger.Error("failed to restore listeners from database: %v", colors.Red(err))
 		return
 	}
 
 	// restore the agent sessions from the database
-	if err = t.RestoreListeners(); err != nil {
-		logger.Error("failed to restore listeners from database: %v", colors.Red(err))
+	if err = t.RestoreAgents(); err != nil {
+		logger.Error("failed to restore agents from database: %v", colors.Red(err))
 		return
 	}
 

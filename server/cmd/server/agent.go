@@ -13,6 +13,8 @@ func (t *Teamserver) AgentInitialize(uuid, plugin, status, note string, data map
 	var agent = &Agent{
 		uuid:   uuid,
 		plugin: plugin,
+		note:   note,
+		status: status,
 	}
 
 	// check if the given uuid already exists
@@ -40,8 +42,6 @@ func (t *Teamserver) AgentDbInsert(uuid, _type, parent, status, note string, met
 		err       error
 	)
 
-	gob.Register(map[string]any{})
-
 	// encode the metadata object into a serialized
 	// bytes buffer to be inserted into the database
 	if err = gob.NewEncoder(&serialize).Encode(metadata); err != nil {
@@ -62,8 +62,6 @@ func (t *Teamserver) AgentDbUpdate(uuid string, parent, status, note string, met
 		serialize bytes.Buffer
 		err       error
 	)
-
-	gob.Register(map[string]any{})
 
 	// encode the metadata object into a serialized
 	// bytes buffer to be inserted into the database
@@ -328,22 +326,6 @@ func (t *Teamserver) AgentGenerate(ctx map[string]any, config map[string]any) (s
 	}
 
 	return "", nil, nil, errors.New("agent to generate not found")
-}
-
-func (t *Teamserver) AgentRestore(uuid, parent, status, note string, serialized []byte) error {
-	var (
-		agent *Agent
-		value any
-		ok    bool
-	)
-
-	// load stored agent by uuid from map
-	if value, ok = t.agents.Load(uuid); ok {
-		agent = value.(*Agent)
-		return t.plugins.AgentRestore(agent.plugin, uuid, parent, status, note, serialized)
-	}
-
-	return errors.New("agent by uuid not found")
 }
 
 func (t *Teamserver) AgentExecute(uuid string, data map[string]any, wait bool) (map[string]any, error) {

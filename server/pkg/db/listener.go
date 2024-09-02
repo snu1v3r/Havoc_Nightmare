@@ -6,48 +6,38 @@ import (
 	"errors"
 )
 
-type Agent struct {
-	Uuid     string
-	Type     string
-	Parent   string
+type Listener struct {
+	Name     string
+	Protocol string
 	Status   string
-	Note     string
-	Metadata []byte
+	Config   []byte
 }
 
-func (db *Database) AgentInsert(uuid, _type, parent, status, note string, metadata []byte) error {
+func (db *Database) ListenerInsert(name, protocol, status string, config []byte) error {
 	var (
 		stmt  *sql.Stmt
 		err   error
 		exist bool
 	)
 
-	// check if the to be inserted agent uuid already exists
-	exist, err = db.AgentExist(uuid)
+	// check if the to be inserted listener name already exists
+	exist, err = db.ListenerExist(name)
 	if err != nil {
 		return err
 	} else if exist {
-		return errors.New("agent already exist")
+		return errors.New("listener already exist")
 	}
 
 	// create sql insert statement
 	if stmt, err = db.sqlite.Prepare(`
-        INSERT INTO Agents (uuid, type, parent, status, note, metadata, disabled) values(?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO Listeners (name, protocol, status, config) values(?, ?, ?, ?)
     `); err != nil {
 		logger.DebugError("sqlite.Prepare failed: %v", err)
 		return err
 	}
 
 	// insert the data into the created sql statement
-	if _, err = stmt.Exec(
-		uuid,
-		_type,
-		parent,
-		status,
-		note,
-		metadata,
-		false,
-	); err != nil {
+	if _, err = stmt.Exec(name, protocol, status, config); err != nil {
 		logger.DebugError("stmt.Exec failed: %v", err)
 		return err
 	}
@@ -55,7 +45,7 @@ func (db *Database) AgentInsert(uuid, _type, parent, status, note string, metada
 	return err
 }
 
-func (db *Database) AgentUpdate(uuid, parent, status, note string, metadata []byte) error {
+func (db *Database) ListenerUpdate(name, status string, config []byte) error {
 	var (
 		stmt *sql.Stmt
 		err  error
@@ -63,14 +53,14 @@ func (db *Database) AgentUpdate(uuid, parent, status, note string, metadata []by
 
 	// create sql insert statement
 	if stmt, err = db.sqlite.Prepare(`
-        UPDATE Agents SET parent = ?, status = ?, note = ?, metadata = ? WHERE uuid = ?
+        UPDATE Listeners SET status = ?, config = ? WHERE name = ?
     `); err != nil {
 		logger.DebugError("sqlite.Prepare failed: %v", err)
 		return err
 	}
 
 	// insert the data into the created sql statement
-	if _, err = stmt.Exec(parent, status, note, metadata, uuid); err != nil {
+	if _, err = stmt.Exec(status, config, name); err != nil {
 		logger.DebugError("stmt.Exec failed: %v", err)
 		return err
 	}
@@ -78,21 +68,21 @@ func (db *Database) AgentUpdate(uuid, parent, status, note string, metadata []by
 	return err
 }
 
-func (db *Database) AgentExist(uuid string) (bool, error) {
+func (db *Database) ListenerExist(name string) (bool, error) {
 	var (
 		stmt *sql.Stmt
 		err  error
 	)
 
 	// prepare statement for the sql query
-	stmt, err = db.sqlite.Prepare("SELECT COUNT(*) FROM Agents WHERE uuid = ?")
+	stmt, err = db.sqlite.Prepare("SELECT COUNT(*) FROM Listeners WHERE name = ?")
 	if err != nil {
 		logger.DebugError("sqlite.Prepare failed: %v", err)
 		return false, err
 	}
 
 	// execute statement
-	query, err := stmt.Query(uuid)
+	query, err := stmt.Query(name)
 	defer query.Close()
 	if err != nil {
 		logger.DebugError("stmt.Query failed: %v", err)
@@ -118,38 +108,41 @@ func (db *Database) AgentExist(uuid string) (bool, error) {
 	return false, nil
 }
 
-func (db *Database) AgentDisable(uuid string) error {
+func (db *Database) ListenerRemove(name string) error {
 	var (
 		stmt *sql.Stmt
 		err  error
 	)
 
-	// create sql insert statement
-	if stmt, err = db.sqlite.Prepare(`
-        UPDATE Agents SET disabled = ? WHERE uuid = ?
-    `); err != nil {
+	// prepare some statement to delete
+	// the listener entry from the database
+	stmt, err = db.sqlite.Prepare("DELETE FROM Listeners WHERE name = ?")
+	defer stmt.Close()
+	if err != nil {
 		logger.DebugError("sqlite.Prepare failed: %v", err)
 		return err
 	}
 
-	// insert the data into the created sql statement
-	if _, err = stmt.Exec(true, uuid); err != nil {
+	// execute statement with the listener name
+	_, err = stmt.Exec(name)
+
+	if err != nil {
 		logger.DebugError("stmt.Exec failed: %v", err)
 		return err
 	}
 
-	return err
+	return nil
 }
 
-func (db *Database) AgentLists() ([]Agent, error) {
+func (db *Database) ListenerList() ([]Listener, error) {
 	var (
-		agents []Agent
-		query  *sql.Rows
-		err    error
+		listeners []Listener
+		query     *sql.Rows
+		err       error
 	)
 
 	// prepare the query statement
-	query, err = db.sqlite.Query("SELECT uuid, type, parent, status, note, metadata FROM Agents WHERE disabled = 0")
+	query, err = db.sqlite.Query("SELECT name, protocol, status, config FROM Listeners")
 	if err != nil {
 		logger.DebugError("sqlite.Query failed: %v", err)
 		return nil, err
@@ -160,16 +153,16 @@ func (db *Database) AgentLists() ([]Agent, error) {
 	// iterate over the list of agents and
 	// scan them into the agent entry structure
 	for query.Next() {
-		var entry Agent
+		var entry Listener
 
-		err = query.Scan(&entry.Uuid, &entry.Type, &entry.Parent, &entry.Status, &entry.Note, &entry.Metadata)
+		err = query.Scan(&entry.Name, &entry.Protocol, &entry.Status, &entry.Config)
 		if err != nil {
 			logger.DebugError("query.Scan failed: %v", err)
 			return nil, err
 		}
 
-		agents = append(agents, entry)
+		listeners = append(listeners, entry)
 	}
 
-	return agents, nil
+	return listeners, nil
 }

@@ -1,6 +1,9 @@
 package server
 
 import (
+	"Havoc/pkg/logger"
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -68,7 +71,7 @@ func (t *Teamserver) ListenerProtocolExists(protocol string) bool {
 	return false
 }
 
-func (t *Teamserver) ListenerInitDir(name string) (string, error) {
+func (t *Teamserver) ListenerDir(name string) (string, error) {
 	var (
 		path string
 		err  error
@@ -102,6 +105,10 @@ func (t *Teamserver) ListenerRemove(name string) error {
 				return err
 			}
 
+			if err = t.database.ListenerRemove(name); err != nil {
+				return err
+			}
+
 			t.UserBroadcast(false, t.EventCreate(EventListenerRemove, map[string]string{
 				"name": name,
 			}))
@@ -121,6 +128,7 @@ func (t *Teamserver) ListenerRestart(name string) error {
 		protocol string
 		status   string
 		err      error
+		config   map[string]any
 	)
 
 	if !t.ListenerExists(name) {
@@ -136,6 +144,18 @@ func (t *Teamserver) ListenerRestart(name string) error {
 			}
 
 			t.ListenerStatus(name, status, true)
+
+			config, err = t.ListenerConfig(name)
+			if err != nil {
+				logger.DebugError("ListenerConfig error on %v: %v", name, err)
+				return err
+			}
+
+			err = t.DatabaseListenerUpdate(name, status, config)
+			if err != nil {
+				logger.DebugError("DatabaseListenerUpdate error on %v: %v", name, err)
+				return err
+			}
 			break
 		}
 	}
@@ -148,6 +168,7 @@ func (t *Teamserver) ListenerStop(name string) error {
 		protocol string
 		status   string
 		err      error
+		config   map[string]any
 	)
 
 	if !t.ListenerExists(name) {
@@ -165,6 +186,18 @@ func (t *Teamserver) ListenerStop(name string) error {
 			}
 
 			t.ListenerStatus(name, status, false)
+
+			config, err = t.ListenerConfig(name)
+			if err != nil {
+				logger.DebugError("ListenerConfig error on %v: %v", name, err)
+				return err
+			}
+
+			err = t.DatabaseListenerUpdate(name, status, config)
+			if err != nil {
+				logger.DebugError("DatabaseListenerUpdate error on %v: %v", name, err)
+				return err
+			}
 
 			t.UserBroadcast(false, t.EventCreate(EventListenerStop, map[string]string{
 				"name":   name,
@@ -196,7 +229,7 @@ func (t *Teamserver) ListenerStart(name, protocol string, options map[string]any
 		}
 
 		if !t.ListenerExists(name) {
-			if path, err = t.ListenerInitDir(name); err != nil {
+			if path, err = t.ListenerDir(name); err != nil {
 				return errors.New("failed to create listener config path: " + err.Error())
 			}
 		}
@@ -226,7 +259,8 @@ func (t *Teamserver) ListenerStart(name, protocol string, options map[string]any
 			port, _ = data["port"]
 			status, _ = data["status"]
 
-			// TODO: replace the Handler struct here with a custom one called Listener
+			// TODO: replace the Handler struct here with
+			//       a custom one called Listener
 			t.listener = append(t.listener, Handler{
 				Name: name,
 				Data: map[string]any{
@@ -237,6 +271,13 @@ func (t *Teamserver) ListenerStart(name, protocol string, options map[string]any
 					"config.path": path,
 				},
 			})
+
+			err = t.DatabaseListenerInsert(name, protocol, status, options)
+			if err != nil {
+				// as long as we managed to start the listener but failed to
+				// insert it into the database we should still try to continue
+				logger.DebugError("DatabaseListenerInsert error on %v: %v", name, err)
+			}
 
 			t.UserBroadcast(false, t.EventCreate(EventListenerStart, map[string]string{
 				"name":     name,
@@ -251,6 +292,27 @@ func (t *Teamserver) ListenerStart(name, protocol string, options map[string]any
 	}
 
 	return err
+}
+
+func (t *Teamserver) ListenerRestore(name, protocol, status string, config []byte) (map[string]string, error) {
+	var (
+		err     error
+		options = make(map[string]any)
+	)
+
+	err = errors.New("protocol not found")
+
+	if !t.ListenerProtocolExists(protocol) {
+		return nil, errors.New("listener protocol not found")
+	}
+
+	err = gob.NewDecoder(bytes.NewBuffer(config)).Decode(&options)
+	if err != nil {
+		logger.DebugError("gob.NewDecoder error: %v", err)
+		return nil, err
+	}
+
+	return t.plugins.ListenerRestore(name, protocol, status, options)
 }
 
 func (t *Teamserver) ListenerEvent(name string, event map[string]any) (map[string]any, error) {
@@ -296,6 +358,8 @@ func (t *Teamserver) ListenerEdit(name string, config map[string]any) error {
 		return err
 	}
 
+	// TODO: edit the database entry as well
+
 	return err
 }
 
@@ -322,6 +386,8 @@ func (t *Teamserver) ListenerLog(name string, format string, args ...any) {
 	}))
 }
 
+// ListenerStatus
+// TODO: rename the function to ListenerSetStatus
 func (t *Teamserver) ListenerStatus(name string, status string, event bool) {
 	for i := range t.listener {
 		if t.listener[i].Name == name {
@@ -340,4 +406,50 @@ func (t *Teamserver) ListenerStatus(name string, status string, event bool) {
 
 func (t *Teamserver) ListenerConfigPath(name string) string {
 	return t.configPath + "/listeners/" + name
+}
+
+func (t *Teamserver) DatabaseListenerInsert(name, protocol, status string, config map[string]any) error {
+	var (
+		serialize bytes.Buffer
+		err       error
+	)
+
+	// encode the config map into a serialized bytes
+	// buffer to be inserted into the database
+	if err = gob.NewEncoder(&serialize).Encode(config); err != nil {
+		return err
+	}
+
+	// insert the listener into the database
+	err = t.database.ListenerInsert(name, protocol, status, serialize.Bytes())
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func (t *Teamserver) DatabaseListenerUpdate(name, status string, config map[string]any) error {
+	var (
+		serialize bytes.Buffer
+		err       error
+	)
+
+	// encode the config map into a serialized bytes
+	// buffer to be inserted into the database
+	if err = gob.NewEncoder(&serialize).Encode(config); err != nil {
+		return err
+	}
+
+	// insert the listener into the database
+	err = t.database.ListenerUpdate(name, status, serialize.Bytes())
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func (t *Teamserver) DatabaseListenerRemove(name string) error {
+	return t.database.ListenerRemove(name)
 }

@@ -47,6 +47,7 @@ func (db *Database) prepare() error {
 	// to access the same database
 	// db.sqlite.SetMaxOpenConns(1)
 
+	// creat a database table for Agents if it doesn't exist yet
 	if _, err = db.sqlite.Exec(
 		`CREATE TABLE IF NOT EXISTS "Agents" (
 			"uuid"		TEXT,
@@ -56,6 +57,18 @@ func (db *Database) prepare() error {
 			"status"	TEXT,
 			"note"		TEXT,
 			"disabled"	INTEGER
+		)`,
+	); err != nil {
+		return err
+	}
+
+	// creat a database table for Listeners if it doesn't exist yet
+	if _, err = db.sqlite.Exec(
+		`CREATE TABLE IF NOT EXISTS "Listeners" (
+			"name"		TEXT,
+			"protocol"	TEXT,
+			"status"	TEXT,
+			"config"	BLOB NOT NULL
 		)`,
 	); err != nil {
 		return err

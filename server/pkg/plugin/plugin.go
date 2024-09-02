@@ -44,6 +44,7 @@ type BasicInterface interface {
 type ListenerInterface interface {
 	ListenerRegister() map[string]any
 	ListenerStart(name string, options map[string]any) (map[string]string, error)
+	ListenerRestore(name, status string, options map[string]any) (map[string]string, error)
 	ListenerEdit(name string, config map[string]any) error
 	ListenerStop(name string) (string, error)
 	ListenerRestart(name string) (string, error)
@@ -269,6 +270,11 @@ func (s *System) CheckAndInsertInterface(extension *Plugin, inter any) error {
 		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("ListenerRestart"); !ok {
 			return fmt.Errorf("ListenerRestart not found")
+		}
+
+		// sanity check if the method exist
+		if _, ok = reflection.MethodByName("ListenerRestore"); !ok {
+			return fmt.Errorf("ListenerRestore not found")
 		}
 
 		// sanity check if the method exist
