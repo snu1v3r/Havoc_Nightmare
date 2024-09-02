@@ -36,7 +36,7 @@ var CobraServer = &cobra.Command{
 			return nil
 		}
 
-		Server.SetServerFlags(flags)
+		Server.SetFlags(flags)
 
 		startMenu()
 

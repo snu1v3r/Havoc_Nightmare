@@ -2,6 +2,7 @@ package server
 
 import (
 	"Havoc/pkg/api"
+	"Havoc/pkg/db"
 	"Havoc/pkg/plugin"
 	"Havoc/pkg/profile"
 	"sync"
@@ -61,9 +62,10 @@ type Agent struct {
 }
 
 type Teamserver struct {
-	Flags  TeamserverFlags
-	Server *api.ServerApi
+	flags  TeamserverFlags
+	server *api.ServerApi
 
+	database   *db.Database
 	profile    *profile.Profile
 	configPath string
 	events     struct {

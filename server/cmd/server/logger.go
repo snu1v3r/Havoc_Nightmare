@@ -26,6 +26,6 @@ func (*Teamserver) LogDebug(fmt string, args ...any) {
 	logger.Debug(fmt, args...)
 }
 
-func (*Teamserver) LogDebugError(fmt string, args ...any) {
+func (*Teamserver) LogDbgError(fmt string, args ...any) {
 	logger.DebugError(fmt, args...)
 }

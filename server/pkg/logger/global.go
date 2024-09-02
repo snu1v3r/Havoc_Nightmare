@@ -6,55 +6,47 @@ import (
 	"os"
 )
 
-var LoggerInstance *Logger
+var Log Logger
 
 func init() {
-	LoggerInstance = NewLogger(os.Stdout)
-}
-
-func NewLogger(StdOut io.Writer) *Logger {
-	var logger = new(Logger)
-
-	logger.STDOUT = os.Stdout
-	logger.STDERR = os.Stderr
-	logger.debug = false
-	logger.log = log.New(StdOut, "", 0)
-
-	return logger
+	Log = Logger{
+		debug: false,
+		log:   log.New(os.Stdout, "", 0),
+	}
 }
 
 func Info(fmt string, args ...any) {
-	LoggerInstance.Info(fmt, args...)
+	Log.Info(fmt, args...)
 }
 
 func Debug(fmt string, args ...any) {
-	LoggerInstance.Debug(fmt, args...)
+	Log.Debug(fmt, args...)
 }
 
 func DebugError(fmt string, args ...any) {
-	LoggerInstance.DebugError(fmt, args...)
+	Log.DebugError(fmt, args...)
 }
 
 func Warn(fmt string, args ...any) {
-	LoggerInstance.Warn(fmt, args...)
+	Log.Warn(fmt, args...)
 }
 
 func Error(fmt string, args ...any) {
-	LoggerInstance.Error(fmt, args...)
+	Log.Error(fmt, args...)
 }
 
 func Fatal(fmt string, args ...any) {
-	LoggerInstance.Fatal(fmt, args...)
+	Log.Fatal(fmt, args...)
 }
 
 func Panic(fmt string, args ...any) {
-	LoggerInstance.Panic(fmt, args...)
+	Log.Panic(fmt, args...)
 }
 
 func SetDebug(enable bool) {
-	LoggerInstance.SetDebug(enable)
+	Log.SetDebug(enable)
 }
 
 func SetStdOut(w io.Writer) {
-	LoggerInstance.log.SetOutput(w)
+	Log.log.SetOutput(w)
 }

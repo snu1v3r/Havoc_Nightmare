@@ -45,7 +45,7 @@ type teamserver interface {
 	ListenerEdit(name string, config map[string]any) error
 	ListenerList() []map[string]string
 
-	AgentInitialize(uuid, _type string, data map[string]any) error
+	AgentInitialize(uuid, plugin, status, note string, data map[string]any) error
 	AgentData(uuid string) (map[string]any, error)
 	AgentExist(uuid string) bool
 	AgentType(uuid string) (string, error)
@@ -55,6 +55,8 @@ type teamserver interface {
 	AgentExecute(uuid string, data map[string]any, wait bool) (map[string]any, error)
 	AgentNote(uuid string) (string, error)
 	AgentSetNote(uuid string, note string) error
+	AgentStatus(uuid string) (string, error)
+	AgentSetStatus(uuid string, status string) error
 }
 
 type ServerApi struct {

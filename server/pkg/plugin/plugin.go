@@ -1,12 +1,13 @@
 package plugin
 
 import (
-	"Havoc/pkg/utils"
 	"errors"
 	"fmt"
 	"plugin"
 	"reflect"
 	"sync"
+
+	"Havoc/pkg/utils"
 )
 
 const (
@@ -19,10 +20,10 @@ type HavocInterface interface {
 	LogInfo(fmt string, args ...any)
 	LogError(fmt string, args ...any)
 	LogWarn(fmt string, args ...any)
+	LogDebug(fmt string, args ...any)
+	LogDbgError(fmt string, args ...any)
 	LogFatal(fmt string, args ...any)
 	LogPanic(fmt string, args ...any)
-	LogDebug(fmt string, args ...any)
-	LogDebugError(fmt string, args ...any)
 
 	Version() map[string]string
 
@@ -30,6 +31,10 @@ type HavocInterface interface {
 	ListenerProtocol(name string) (string, error)
 
 	AgentRegisterType(name string, agent map[string]any) error
+
+	AgentDbInsert(uuid, _type, parent, status, note string, metadata any) error
+	AgentDbUpdate(uuid string, parent, status, note string, metadata any) error
+	AgentDbDisable(uuid string) error
 }
 
 type BasicInterface interface {
@@ -49,6 +54,8 @@ type ListenerInterface interface {
 
 type AgentInterface interface {
 	AgentRegister() map[string]any
+	AgentRestore(uuid, parent, status, note string, serialized []byte) error
+	AgentUpdate(uuid string) error
 	AgentGenerate(ctx map[string]any, config map[string]any) (string, []byte, map[string]any, error)
 	AgentExecute(uuid string, data map[string]any, wait bool) (map[string]any, error)
 	AgentProcess(ctx map[string]any, request []byte) ([]byte, error)
@@ -61,8 +68,6 @@ type Plugin struct {
 	Name string
 	Type string
 	Data map[string]any
-
-	// either the listener protocol name or the agent type name
 
 	// the loaded plugin interface that are callable
 	BasicInterface
@@ -219,6 +224,11 @@ func (s *System) CheckAndInsertInterface(extension *Plugin, inter any) error {
 		}
 
 		// sanity check if the method exist
+		if _, ok = reflection.MethodByName("AgentRestore"); !ok {
+			return fmt.Errorf("AgentRestore not found")
+		}
+
+		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("AgentExecute"); !ok {
 			return fmt.Errorf("AgentExecute not found")
 		}
@@ -226,6 +236,11 @@ func (s *System) CheckAndInsertInterface(extension *Plugin, inter any) error {
 		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("AgentProcess"); !ok {
 			return fmt.Errorf("AgentProcess not found")
+		}
+
+		// sanity check if the method exist
+		if _, ok = reflection.MethodByName("AgentGet"); !ok {
+			return fmt.Errorf("AgentGet not found")
 		}
 
 		// cast the interface

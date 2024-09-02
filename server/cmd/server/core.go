@@ -1,6 +1,7 @@
 package server
 
 import (
+	"Havoc/pkg/db"
 	"os"
 
 	"Havoc/pkg/api"
@@ -29,8 +30,8 @@ func NewTeamserver() *Teamserver {
 	return server
 }
 
-func (t *Teamserver) SetServerFlags(flags TeamserverFlags) {
-	t.Flags = flags
+func (t *Teamserver) SetFlags(flags TeamserverFlags) {
+	t.flags = flags
 }
 
 func (t *Teamserver) Start() {
@@ -40,14 +41,22 @@ func (t *Teamserver) Start() {
 		certPath, keyPath string
 	)
 
-	if t.Server, err = api.NewServerApi(t); err != nil {
-		logger.Error("failed to start api server: " + err.Error())
+	// initialize database that is going to store the agent connections, listener status/logs, etc.
+	if t.database, err = db.NewDatabase(t.ConfigPath() + "/database.db"); err != nil {
+		logger.Error("failed to initialize database: " + colors.Red(err.Error()))
+		return
+	}
+
+	// create a server api endpoints
+	if t.server, err = api.NewServerApi(t); err != nil {
+		logger.Error("failed to initialize api server: " + colors.Red(err.Error()))
 		return
 	}
 
 	// generate a new plugin system instance
 	t.plugins = plugin.NewPluginSystem(t)
 
+	// parse the provided server profile
 	server, err = t.profile.Server()
 	if err != nil {
 		logger.Error("failed to parse profile server block: " + err.Error())
@@ -72,27 +81,29 @@ func (t *Teamserver) Start() {
 	// check if the ssl certification has been set in the profile
 	if len(server.Ssl.Key) == 0 && len(server.Ssl.Key) == 0 {
 		// has not been set, so we are going to generate a new pair of certs
-		certPath, keyPath, err = t.Server.GenerateSSL(server.Host, t.ConfigPath())
+		certPath, keyPath, err = t.server.GenerateSSL(server.Host, t.ConfigPath())
 		if err != nil {
 			return
 		}
 
 		logger.Info("%v ssl cert: %v", colors.BoldGreen("[auto]"), certPath)
-		err = t.Server.SetSSL(certPath, keyPath)
+		err = t.server.SetSSL(certPath, keyPath)
 		if err != nil {
 			logger.Error("failed to set ssl cert: %v", colors.Red(err))
 			return
 		}
 	} else {
 		logger.Info("%v ssl cert: %v", colors.BoldYellow("[custom]"), server.Ssl.Cert)
-		err = t.Server.SetSSL(server.Ssl.Cert, server.Ssl.Key)
+		err = t.server.SetSSL(server.Ssl.Cert, server.Ssl.Key)
 		if err != nil {
 			logger.Error("failed to set ssl cert: %v", colors.Red(err))
 			return
 		}
 	}
 
-	t.Server.Start(server.Host, server.Port)
+	// finally start the api endpoints and our
+	// teamserver for the clients to interact with
+	t.server.Start(server.Host, server.Port)
 }
 
 // Version
@@ -138,8 +149,6 @@ func (t *Teamserver) Profile(path string) error {
 	var err error
 
 	t.profile = profile.NewProfile()
-
-	logger.LoggerInstance.STDERR = os.Stderr
 
 	err = t.profile.Parse(path)
 	if err != nil {

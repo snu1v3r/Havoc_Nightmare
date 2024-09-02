@@ -31,9 +31,6 @@ func FunctionTrace() (string, int) {
 }
 
 type Logger struct {
-	STDOUT *os.File
-	STDERR *os.File
-
 	log   *log.Logger
 	debug bool
 }
