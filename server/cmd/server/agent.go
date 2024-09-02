@@ -63,6 +63,8 @@ func (t *Teamserver) AgentDbUpdate(uuid string, parent, status, note string, met
 		err       error
 	)
 
+	gob.Register(map[string]any{})
+
 	// encode the metadata object into a serialized
 	// bytes buffer to be inserted into the database
 	if err = gob.NewEncoder(&serialize).Encode(metadata); err != nil {

@@ -101,6 +101,18 @@ func (t *Teamserver) Start() {
 		}
 	}
 
+	// restore the agent sessions from the database
+	if err = t.RestoreAgents(); err != nil {
+		logger.Error("failed to restore agents from database: %v", colors.Red(err))
+		return
+	}
+
+	// restore the agent sessions from the database
+	if err = t.RestoreListeners(); err != nil {
+		logger.Error("failed to restore listeners from database: %v", colors.Red(err))
+		return
+	}
+
 	// finally start the api endpoints and our
 	// teamserver for the clients to interact with
 	t.server.Start(server.Host, server.Port)
