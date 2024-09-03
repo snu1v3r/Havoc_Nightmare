@@ -25,6 +25,9 @@ public:
 
     auto listeners() -> void;
     auto agents() -> void;
+    auto console(
+        const std::string& uuid
+    ) -> void;
 
 Q_SIGNALS:
     auto AddListener(
@@ -33,6 +36,10 @@ Q_SIGNALS:
 
     auto AddAgent(
         const json& agent
+    )-> void;
+
+    auto AddAgentConsole(
+        const json& data
     )-> void;
 
     auto eventWorkerRun() -> void;

@@ -31,6 +31,32 @@ func (s *System) AgentGenerate(ctx map[string]any, config map[string]any) (strin
 	return name, bin, cfg, err
 }
 
+func (s *System) AgentRemove(plugin, uuid string) error {
+	var (
+		err error
+		ext *Plugin
+	)
+
+	err = errors.New("agent not found")
+
+	s.loaded.Range(func(key, value any) bool {
+		ext = value.(*Plugin)
+
+		if ext.Type != TypeAgent {
+			return true
+		}
+
+		if plugin == ext.Data["name"] {
+			err = ext.AgentRemove(uuid)
+			return false
+		}
+
+		return true
+	})
+
+	return err
+}
+
 func (s *System) AgentRestore(plugin, uuid, parent, status, note string, serialized []byte) error {
 	var (
 		err error

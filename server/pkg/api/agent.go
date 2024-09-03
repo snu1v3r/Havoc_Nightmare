@@ -313,8 +313,122 @@ ERROR:
 	})
 }
 
-func (api *ServerApi) agentConsole(ctx *gin.Context) {
+func (api *ServerApi) agentRemove(ctx *gin.Context) {
+	var (
+		err      error
+		body     []byte
+		uuid     string
+		response map[string]any
+	)
 
+	if !api.sanityCheck(ctx) {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	// read from request the login data
+	if body, err = io.ReadAll(io.LimitReader(ctx.Request.Body, ApiMaxRequestRead)); err != nil {
+		logger.DebugError("failed to read from server api login request: " + err.Error())
+		goto ERROR
+	}
+
+	logger.Debug("/api/agent/remove -> %v", string(body))
+
+	// unmarshal the bytes into a map
+	if err = json.Unmarshal(body, &response); err != nil {
+		logger.DebugError("failed to unmarshal bytes to map: " + err.Error())
+		err = errors.New("invalid request")
+		return
+	}
+
+	if val, ok := response["uuid"]; ok {
+		// get uuid from client request
+		switch val.(type) {
+		case string:
+			uuid = val.(string)
+		default:
+			logger.DebugError("failed retrieve agent uuid: invalid type")
+			err = errors.New("invalid request")
+			goto ERROR
+		}
+	} else {
+		err = errors.New("invalid request")
+		goto ERROR
+	}
+
+	if err = api.havoc.AgentRemove(uuid); err != nil {
+		logger.DebugError("failed to delete agent session: %v", err)
+		goto ERROR
+	}
+
+	ctx.AbortWithStatus(http.StatusOK)
+	return
+ERROR:
+	ctx.JSON(http.StatusInternalServerError, gin.H{
+		"error": err.Error(),
+	})
+}
+
+func (api *ServerApi) agentConsole(ctx *gin.Context) {
+	var (
+		err      error
+		body     []byte
+		uuid     string
+		response map[string]any
+		list     []map[string]any
+	)
+
+	if !api.sanityCheck(ctx) {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	// read from request the login data
+	if body, err = io.ReadAll(io.LimitReader(ctx.Request.Body, ApiMaxRequestRead)); err != nil {
+		logger.DebugError("failed to read from server api login request: " + err.Error())
+		goto ERROR
+	}
+
+	logger.Debug("/api/agent/remove -> %v", string(body))
+
+	// unmarshal the bytes into a map
+	if err = json.Unmarshal(body, &response); err != nil {
+		logger.DebugError("failed to unmarshal bytes to map: " + err.Error())
+		err = errors.New("invalid request")
+		return
+	}
+
+	if val, ok := response["uuid"]; ok {
+		// get uuid from client request
+		switch val.(type) {
+		case string:
+			uuid = val.(string)
+		default:
+			logger.DebugError("failed retrieve agent uuid: invalid type")
+			err = errors.New("invalid request")
+			goto ERROR
+		}
+	} else {
+		err = errors.New("invalid request")
+		goto ERROR
+	}
+
+	list, err = api.havoc.DatabaseAgentConsole(uuid)
+	if err != nil {
+		logger.DebugError("failed to get agent console: %v", err)
+		goto ERROR
+	}
+
+	ctx.JSON(http.StatusOK, list)
+	return
+
+ERROR:
+	ctx.JSON(http.StatusInternalServerError, gin.H{
+		"error": err.Error(),
+	})
+}
+
+func (api *ServerApi) agentHide(ctx *gin.Context) {
 	if !api.sanityCheck(ctx) {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
 		return

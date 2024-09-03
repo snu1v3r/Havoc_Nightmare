@@ -408,8 +408,9 @@ auto HavocClient::SetupThreads() -> void {
     //
     // connect methods to add listeners, agents, etc. to the user interface (ui)
     //
-    QObject::connect( MetaWorker.Worker, &HcMetaWorker::AddListener, Gui, &HcMainWindow::AddListener );
-    QObject::connect( MetaWorker.Worker, &HcMetaWorker::AddAgent, Gui, &HcMainWindow::AddAgent );
+    QObject::connect( MetaWorker.Worker, &HcMetaWorker::AddListener,     Gui, &HcMainWindow::AddListener  );
+    QObject::connect( MetaWorker.Worker, &HcMetaWorker::AddAgent,        Gui, &HcMainWindow::AddAgent     );
+    QObject::connect( MetaWorker.Worker, &HcMetaWorker::AddAgentConsole, Gui, &HcMainWindow::AgentConsole );
 
     //
     // only start the event worker once the meta worker finished

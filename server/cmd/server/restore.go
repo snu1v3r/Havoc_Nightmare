@@ -1,9 +1,16 @@
 package server
 
 import (
+	"Havoc/pkg/colors"
 	"Havoc/pkg/db"
 	"Havoc/pkg/logger"
 )
+
+var LogPrefix string
+
+func init() {
+	LogPrefix = colors.Blue("[database]") + " "
+}
 
 func (t *Teamserver) RestoreAgents() error {
 	var (
@@ -15,15 +22,15 @@ func (t *Teamserver) RestoreAgents() error {
 	// database that aren't disabled
 	list, err = t.database.AgentLists()
 	if err != nil {
-		logger.DebugError("AgentLists failed: %v", err)
+		logger.DebugError(LogPrefix+"AgentLists failed: %v", err)
 		return err
 	}
 
 	for _, agent := range list {
 		err = t.plugins.AgentRestore(agent.Type, agent.Uuid, agent.Parent, agent.Status, agent.Note, agent.Metadata)
 		if err != nil {
-			logger.DebugError("AgentRestore failed: %v", err)
-			return err
+			logger.Error(LogPrefix+"failed to restore agent %v (%v): %v", colors.Blue(agent.Uuid), agent.Type, err)
+			continue
 		}
 	}
 
@@ -45,7 +52,7 @@ func (t *Teamserver) RestoreListeners() error {
 	// database that aren't disabled
 	list, err = t.database.ListenerList()
 	if err != nil {
-		logger.DebugError("ListenerList failed: %v", err)
+		logger.DebugError(LogPrefix+"ListenerList failed: %v", err)
 		return err
 	}
 
@@ -55,15 +62,15 @@ func (t *Teamserver) RestoreListeners() error {
 		// initialize directory
 		path, err = t.ListenerDir(listener.Name)
 		if err != nil {
-			logger.DebugError("ListenerDir failed on %v: %v", listener.Name, err)
+			logger.DebugError(LogPrefix+"ListenerDir failed on %v: %v", listener.Name, err)
 			return err
 		}
 
 		// restore the listener
 		data, err = t.ListenerRestore(listener.Name, listener.Protocol, listener.Status, listener.Config)
 		if err != nil {
-			logger.DebugError("ListenerRestore failed on %v: %v", listener.Name, err)
-			return err
+			logger.Error(LogPrefix+"failed to restore listener %v (%v): %v", colors.Blue(listener.Name), listener.Protocol, err)
+			continue
 		}
 
 		host, _ = data["host"]

@@ -29,7 +29,7 @@ const (
 	UserStatusOnline  = 1
 )
 
-type teamserver interface {
+type HavocInterface interface {
 	UserAuthenticate(username, password string) bool
 	UserLogin(token string, login any, socket *websocket.Conn)
 	UserLogoutByToken(user string) error
@@ -49,7 +49,7 @@ type teamserver interface {
 	AgentData(uuid string) (map[string]any, error)
 	AgentExist(uuid string) bool
 	AgentType(uuid string) (string, error)
-	AgentDelete(uuid string) error
+	AgentRemove(uuid string) error
 	AgentList() []string
 	AgentGenerate(ctx map[string]any, config map[string]any) (string, []byte, map[string]any, error)
 	AgentExecute(uuid string, data map[string]any, wait bool) (map[string]any, error)
@@ -57,6 +57,8 @@ type teamserver interface {
 	AgentSetNote(uuid string, note string) error
 	AgentStatus(uuid string) (string, error)
 	AgentSetStatus(uuid string, status string) error
+
+	DatabaseAgentConsole(uuid string) ([]map[string]any, error)
 }
 
 type ServerApi struct {
@@ -73,7 +75,7 @@ type ServerApi struct {
 	// to interact with some functions to
 	// add/query/remove objects and data
 	// to from the teamserver
-	havoc teamserver
+	havoc HavocInterface
 
 	// wait queue for websockets to send
 	// the access token to register the
@@ -81,7 +83,7 @@ type ServerApi struct {
 	tokens sync.Map
 }
 
-func NewServerApi(teamserver teamserver) (*ServerApi, error) {
+func NewServerApi(teamserver HavocInterface) (*ServerApi, error) {
 	var api = new(ServerApi)
 
 	gin.SetMode(gin.ReleaseMode)
@@ -97,6 +99,7 @@ func NewServerApi(teamserver teamserver) (*ServerApi, error) {
 	//
 	// listeners endpoints
 	//
+	api.Engine.POST("/api/listener/list", api.listenerList)
 	api.Engine.POST("/api/listener/start", api.listenerStart)
 	api.Engine.POST("/api/listener/stop", api.listenerStop)
 	api.Engine.POST("/api/listener/restart", api.listenerRestart)
@@ -104,16 +107,17 @@ func NewServerApi(teamserver teamserver) (*ServerApi, error) {
 	api.Engine.POST("/api/listener/edit", api.listenerEdit)
 	api.Engine.POST("/api/listener/event", api.listenerEvent)
 	api.Engine.POST("/api/listener/config", api.listenerConfig)
-	api.Engine.POST("/api/listener/list", api.listenerList)
 
 	//
 	// agent endpoints
 	//
+	api.Engine.POST("/api/agent/list", api.agentList)
 	api.Engine.POST("/api/agent/build", api.agentBuild)
 	api.Engine.POST("/api/agent/execute", api.agentExecute)
 	api.Engine.POST("/api/agent/note", api.agentNote)
-	api.Engine.POST("/api/agent/list", api.agentList)
 	api.Engine.POST("/api/agent/console", api.agentConsole)
+	api.Engine.POST("/api/agent/remove", api.agentRemove)
+	api.Engine.POST("/api/agent/hide", api.agentHide)
 
 	//
 	// websocket event endpoint
@@ -357,16 +361,12 @@ func (api *ServerApi) sanityCheck(ctx *gin.Context) bool {
 		ok    bool
 	)
 
-	//
 	// check if the token header exists
-	//
 	if token = ctx.GetHeader(ApiTokenHeader); len(token) == 0 || len(token) < ApiTokenLength {
 		return false
 	}
 
-	//
 	// check if is inside the tokens map
-	//
 	if _, ok = api.tokens.Load(token); !ok {
 		logger.DebugError("failed retrieve token from map: token entry not found")
 		return false
@@ -383,9 +383,7 @@ func (api *ServerApi) tokenUser(token string) (string, bool) {
 		ok    bool
 	)
 
-	//
 	// check if is inside the tokens map
-	//
 	if val, ok = api.tokens.Load(token); !ok {
 		logger.DebugError("failed retrieve token from map: token entry not found")
 		return user, false
@@ -393,9 +391,7 @@ func (api *ServerApi) tokenUser(token string) (string, bool) {
 
 	login = val.(map[string]any)
 
-	//
 	// get name from agent request
-	//
 	switch login["username"].(type) {
 	case string:
 		user = login["username"].(string)

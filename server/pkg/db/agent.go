@@ -32,7 +32,7 @@ func (db *Database) AgentInsert(uuid, _type, parent, status, note string, metada
 
 	// create sql insert statement
 	if stmt, err = db.sqlite.Prepare(`
-        INSERT INTO Agents (uuid, type, parent, status, note, metadata, disabled) values(?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO Agents (uuid, type, parent, status, note, metadata, disabled, hide) values(?, ?, ?, ?, ?, ?, ?, ?)
     `); err != nil {
 		logger.DebugError("sqlite.Prepare failed: %v", err)
 		return err
@@ -46,6 +46,7 @@ func (db *Database) AgentInsert(uuid, _type, parent, status, note string, metada
 		status,
 		note,
 		metadata,
+		false,
 		false,
 	); err != nil {
 		logger.DebugError("stmt.Exec failed: %v", err)
@@ -141,6 +142,29 @@ func (db *Database) AgentDisable(uuid string) error {
 	return err
 }
 
+func (db *Database) AgentSetHide(uuid string, hide bool) error {
+	var (
+		stmt *sql.Stmt
+		err  error
+	)
+
+	// create sql insert statement
+	if stmt, err = db.sqlite.Prepare(`
+        UPDATE Agents SET hide = ? WHERE uuid = ?
+    `); err != nil {
+		logger.DebugError("sqlite.Prepare failed: %v", err)
+		return err
+	}
+
+	// insert the data into the created sql statement
+	if _, err = stmt.Exec(hide, uuid); err != nil {
+		logger.DebugError("stmt.Exec failed: %v", err)
+		return err
+	}
+
+	return err
+}
+
 func (db *Database) AgentLists() ([]Agent, error) {
 	var (
 		agents []Agent
@@ -172,4 +196,55 @@ func (db *Database) AgentLists() ([]Agent, error) {
 	}
 
 	return agents, nil
+}
+
+func (db *Database) AgentConsole(uuid string) ([][]byte, error) {
+	var (
+		entry []byte
+		list  [][]byte
+		query *sql.Rows
+		err   error
+	)
+
+	query, err = db.sqlite.Query("SELECT data FROM AgentConsole WHERE uuid = ?", uuid)
+	if err != nil {
+		logger.DebugError("sqlite.Query failed: %v", err)
+		return nil, err
+	}
+
+	defer query.Close()
+
+	for query.Next() {
+		if err = query.Scan(&entry); err != nil {
+			logger.DebugError("query.Scan failed: %v", err)
+			return nil, err
+		}
+
+		list = append(list, entry)
+	}
+
+	return list, nil
+}
+
+func (db *Database) AgentConsoleInsert(uuid string, data []byte) error {
+	var (
+		stmt *sql.Stmt
+		err  error
+	)
+
+	// create sql insert statement
+	if stmt, err = db.sqlite.Prepare(`
+        INSERT INTO AgentConsole (uuid, data) values(?, ?)
+    `); err != nil {
+		logger.DebugError("sqlite.Prepare failed: %v", err)
+		return err
+	}
+
+	// insert the data into the created sql statement
+	if _, err = stmt.Exec(uuid, data); err != nil {
+		logger.DebugError("stmt.Exec failed: %v", err)
+		return err
+	}
+
+	return err
 }

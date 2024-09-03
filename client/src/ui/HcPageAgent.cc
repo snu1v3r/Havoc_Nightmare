@@ -437,7 +437,13 @@ auto HcPageAgent::handleAgentMenu(
             if ( action->text().compare( "Interact" ) == 0 ) {
                 spawnAgentConsole( uuid );
             } else if ( action->text().compare( "Remove" ) == 0 ) {
+                auto agent = Agent( uuid ).value();
 
+                agent->remove();
+            } else if ( action->text().compare( "Hide" ) == 0 ) {
+                auto agent = Agent( uuid ).value();
+
+                agent->hide();
             } else {
                 for ( auto agent_action : agent_actions ) {
                     if ( agent_action->name       == action->text().toStdString() &&
@@ -549,7 +555,7 @@ auto HcPageAgent::Agent(
 auto HcPageAgent::actionShowHidden(
     bool checked
 ) -> void {
-
+    // TODO: show hidden
 }
 
 auto HcPageAgent::actionPayloadBuilder(
@@ -614,6 +620,54 @@ auto HcPageAgent::actionTriggered(
             break;
         }
     }
+}
+
+auto HcPageAgent::removeAgent(
+    const std::string& uuid
+) -> void {
+    HcAgent* agent     = {};
+    auto     item_uuid = std::string();
+
+    //
+    // remove the agent from
+    // the table ui widget entry
+    //
+    for ( int i = 0; i < AgentTable->rowCount(); i++ ) {
+        item_uuid = ( ( HcAgentTableItem* ) AgentTable->item( i, 0 ) )->agent->uuid;
+
+        if ( item_uuid == uuid ) {
+            spdlog::debug( "remove agent from table: {}", uuid );
+            AgentTable->removeRow( i );
+            break;
+        }
+    }
+
+    //
+    // remove the agent entry from
+    // the table entry vector list
+    //
+    for ( int i = 0; i < agents.size(); i++ ) {
+        if ( agents[ i ]->uuid == item_uuid ) {
+            agent = agents[ i ];
+
+            agents.erase( agents.begin() + i );
+            break;
+        }
+    }
+
+    if ( agent ) {
+        auto gil = py11::gil_scoped_acquire();
+
+        AgentTab->removeTab( AgentTab->indexOf( agent->console ) );
+
+        spdlog::debug( "agent delete objects" );
+
+        delete agent->console;
+        delete agent;
+    }
+
+    AgentDisplayerTargets->setText( QString( "Targets: %1" ).arg( agents.size() ) );   /* TODO: all targets (only show one host)        */
+    AgentDisplayerSessions->setText( QString( "Sessions: %1" ).arg( agents.size() ) ); /* TODO: only set current alive beacons/sessions */
 }
 
 HcAgentConsole::HcAgentConsole(

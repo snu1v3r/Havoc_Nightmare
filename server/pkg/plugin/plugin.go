@@ -32,9 +32,9 @@ type HavocInterface interface {
 
 	AgentRegisterType(name string, agent map[string]any) error
 
-	AgentDbInsert(uuid, _type, parent, status, note string, metadata any) error
-	AgentDbUpdate(uuid string, parent, status, note string, metadata any) error
-	AgentDbDisable(uuid string) error
+	DatabaseAgentInsert(uuid, _type, parent, status, note string, metadata any) error
+	DatabaseAgentUpdate(uuid string, parent, status, note string, metadata any) error
+	DatabaseAgentDisable(uuid string) error
 }
 
 type BasicInterface interface {
@@ -56,6 +56,7 @@ type ListenerInterface interface {
 type AgentInterface interface {
 	AgentRegister() map[string]any
 	AgentRestore(uuid, parent, status, note string, serialized []byte) error
+	AgentRemove(uuid string) error
 	AgentUpdate(uuid string) error
 	AgentGenerate(ctx map[string]any, config map[string]any) (string, []byte, map[string]any, error)
 	AgentExecute(uuid string, data map[string]any, wait bool) (map[string]any, error)

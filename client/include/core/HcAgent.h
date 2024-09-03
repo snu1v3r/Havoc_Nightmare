@@ -64,6 +64,9 @@ struct HcAgent {
     // signals
     //
     HcAgentEmit emitter = {};
+
+    auto remove() -> void;
+    auto hide() -> void;
 };
 
 #endif //HAVOCCLIENT_HCAGENT_H

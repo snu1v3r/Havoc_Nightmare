@@ -87,6 +87,7 @@ auto HcMetaWorker::agents() -> void
 {
     auto result = httplib::Result();
     auto agents = json();
+    auto uuid   = std::string();
 
     result = Havoc->ApiSend( "/api/agent/list", {} );
 
@@ -128,5 +129,65 @@ auto HcMetaWorker::agents() -> void
         spdlog::debug( "processing agent: {}", agent.dump() );
 
         emit AddAgent( agent );
+
+        //
+        // parse the agent metadata to retrieve the uuid which will then be
+        // passed to the console function to retrieve all console logs
+        //
+        if ( agent.contains( "uuid" ) && agent[ "uuid" ].is_string() ) {
+            console(
+                agent[ "uuid" ].get<std::string>()
+            );
+        } else {
+            spdlog::error( "[HcMetaWorker::agents] agent does not contain valid uuid" );
+            continue;
+        }
+    }
+}
+
+auto HcMetaWorker::console(
+    const std::string& uuid
+) -> void {
+    auto result = httplib::Result();
+    auto list   = json();
+
+    result = Havoc->ApiSend( "/api/agent/console", { { "uuid", uuid } } );
+
+    if ( result->status != 200 ) {
+        Helper::MessageBox(
+            QMessageBox::Critical,
+            "agent console processing failure",
+            "failed to pull all agent console logs"
+        );
+        return;
+    }
+
+    try {
+        if ( ( list = json::parse( result->body ) ).is_discarded() ) {
+            spdlog::debug( "agent console processing json response has been discarded" );
+            return;
+        }
+    } catch ( std::exception& e ) {
+        spdlog::error( "failed to parse agent console processing json response: \n{}", e.what() );
+        return;
+    }
+
+    if ( list.empty() ) {
+        spdlog::debug( "no agent console to process" );
+        return;
+    }
+
+    if ( ! list.is_array() ) {
+        spdlog::error( "agents console response is not an array" );
+        return;
+    }
+
+    for ( auto& console : list ) {
+        if ( ! console.is_object() ) {
+            spdlog::debug( "warning! agent console processing item is not an object" );
+            continue;
+        }
+
+        emit AddAgentConsole( console );
     }
 }

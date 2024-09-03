@@ -78,6 +78,10 @@ public:
         const json& metadata
     ) -> void;
 
+    auto removeAgent(
+        const std::string& uuid
+    ) -> void;
+
     auto spawnAgentConsole(
         const std::string& uuid
     ) -> void;
@@ -108,6 +112,7 @@ public:
         QTableWidgetItem *item
     ) -> void;
 
+private:
     auto actionShowHidden(
         bool checked
     ) -> void;

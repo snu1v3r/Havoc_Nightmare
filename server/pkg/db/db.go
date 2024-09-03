@@ -56,7 +56,18 @@ func (db *Database) prepare() error {
 			"metadata"	BLOB NOT NULL,
 			"status"	TEXT,
 			"note"		TEXT,
-			"disabled"	INTEGER
+			"disabled"	INTEGER,
+			"hide"		INTEGER
+		)`,
+	); err != nil {
+		return err
+	}
+
+	// creat a database table for agent console output if it doesn't exist yet
+	if _, err = db.sqlite.Exec(
+		`CREATE TABLE IF NOT EXISTS "AgentConsole" (
+			"uuid" TEXT,
+			"data" BLOB NOT NULL
 		)`,
 	); err != nil {
 		return err

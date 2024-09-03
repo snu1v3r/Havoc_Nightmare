@@ -398,7 +398,26 @@ auto HavocClient::eventDispatch(
     }
     else if ( type == Event::agent::remove )
     {
+        auto uuid = std::string();
 
+        if ( data.empty() ) {
+            spdlog::error( "Event::agent::remove: invalid package (data emtpy)" );
+            return;
+        }
+
+        if ( data.contains( "uuid" ) ) {
+            if ( data[ "uuid" ].is_string() ) {
+                uuid = data[ "uuid" ].get<std::string>();
+            } else {
+                spdlog::error( "invalid agent remove: \"uuid\" is not string" );
+                return;
+            }
+        } else {
+            spdlog::error( "invalid agent remove: \"uuid\" is not found" );
+            return;
+        }
+
+        Gui->RemoveAgent( uuid );
     }
     else if ( type == Event::agent::buildlog )
     {

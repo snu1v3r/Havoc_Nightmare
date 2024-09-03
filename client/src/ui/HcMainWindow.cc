@@ -291,6 +291,12 @@ auto HcMainWindow::AddAgent(
     PageAgent->addAgent( agent );
 }
 
+auto HcMainWindow::RemoveAgent(
+    const std::string& uuid
+) -> void {
+    PageAgent->removeAgent( uuid );
+}
+
 auto HcMainWindow::AgentConsole(
     const json& console
 ) -> void {

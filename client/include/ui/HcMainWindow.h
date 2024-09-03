@@ -79,6 +79,10 @@ public Q_SLOT:
         const json& agent
     ) -> void;
 
+    auto RemoveAgent(
+        const std::string& uuid
+    ) -> void;
+
     auto AgentConsole(
         const json& console
     ) -> void;
