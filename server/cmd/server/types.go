@@ -47,6 +47,15 @@ type Handler struct {
 	Data map[string]any `json:"data"`
 }
 
+type Listener struct {
+	Name     string `json:"name"`
+	Protocol string `json:"protocol"`
+	Status   string `json:"status"`
+	Host     string `json:"host"`
+	Port     string `json:"port"`
+	Path     string `json:"path"`
+}
+
 type Agent struct {
 	uuid string
 
@@ -76,8 +85,8 @@ type Teamserver struct {
 	clients sync.Map
 	plugins *plugin.System
 
-	protocols []Handler // available handlers/listeners to use
-	listener  []Handler // started listeners
+	protocols []Handler  // available handlers/listeners to use
+	listener  []Listener // started listeners
 
 	payloads []Handler // available payloads
 	agents   sync.Map  // current connected agents

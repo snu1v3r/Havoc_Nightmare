@@ -59,6 +59,8 @@ func (t *Teamserver) RestoreListeners() error {
 	// iterate over the queried listener
 	// list and add each one to the server
 	for _, listener := range list {
+		logger.Debug("restoring listener %v", colors.Blue(listener.Name))
+
 		// initialize directory
 		path, err = t.ListenerDir(listener.Name)
 		if err != nil {
@@ -77,16 +79,16 @@ func (t *Teamserver) RestoreListeners() error {
 		port, _ = data["port"]
 		status, _ = data["status"]
 
-		t.listener = append(t.listener, Handler{
-			Name: listener.Name,
-			Data: map[string]any{
-				"protocol":    listener.Protocol,
-				"host":        host,
-				"port":        port,
-				"status":      status,
-				"config.path": path,
-			},
+		t.listener = append(t.listener, Listener{
+			Name:     listener.Name,
+			Protocol: listener.Protocol,
+			Host:     host,
+			Port:     port,
+			Status:   status,
+			Path:     path,
 		})
+
+		t.ListenerSetStatus(listener.Name, status, false)
 	}
 
 	return nil
