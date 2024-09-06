@@ -134,18 +134,15 @@ func (t *Teamserver) ListenerRestart(name string) error {
 		return errors.New("listener not found")
 	}
 
-	for _, listener := range t.listener {
-		protocol = listener.Protocol
-
-		if listener.Name == name {
-			if status, err = t.plugins.ListenerRestart(name, protocol); err != nil {
-				return err
-			}
-
-			t.ListenerSetStatus(name, status, true)
-			break
-		}
+	if protocol, err = t.ListenerProtocol(name); err != nil {
+		return err
 	}
+
+	if status, err = t.plugins.ListenerRestart(name, protocol); err != nil {
+		return err
+	}
+
+	t.ListenerSetStatus(name, status, true)
 
 	return nil
 }
@@ -165,20 +162,15 @@ func (t *Teamserver) ListenerStop(name string) error {
 		return err
 	}
 
-	for _, listener := range t.listener {
-		if listener.Name == name {
-			if status, err = t.plugins.ListenerStop(name, protocol); err != nil {
-				return err
-			}
-
-			t.ListenerSetStatus(name, status, false)
-			t.UserBroadcast(false, t.EventCreate(EventListenerStop, map[string]string{
-				"name":   name,
-				"status": status,
-			}))
-			break
-		}
+	if status, err = t.plugins.ListenerStop(name, protocol); err != nil {
+		return err
 	}
+
+	t.ListenerSetStatus(name, status, false)
+	t.UserBroadcast(false, t.EventCreate(EventListenerStop, map[string]string{
+		"name":   name,
+		"status": status,
+	}))
 
 	return nil
 }

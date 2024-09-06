@@ -136,7 +136,7 @@ func (s *System) AgentExecute(plugin, uuid string, data map[string]any, wait boo
 	return resp, err
 }
 
-func (s *System) AgentProcess(ctx map[string]any, request []byte) ([]byte, error) {
+func (s *System) AgentProcess(implant string, context map[string]any, request []byte) ([]byte, error) {
 	var (
 		err error
 		ext *Plugin
@@ -152,8 +152,8 @@ func (s *System) AgentProcess(ctx map[string]any, request []byte) ([]byte, error
 			return true
 		}
 
-		if ctx["name"] == ext.Data["name"] {
-			res, err = ext.AgentProcess(ctx, request)
+		if implant == ext.Data["name"] {
+			res, err = ext.AgentProcess(context, request)
 			return false
 		}
 

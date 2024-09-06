@@ -285,25 +285,29 @@ func (t *Teamserver) AgentHeartbeat(uuid, time string) {
 	}))
 }
 
-//
-// Plugin interfaces and methods
-//
-
-func (t *Teamserver) AgentProcess(ctx map[string]any, request []byte) ([]byte, error) {
+func (t *Teamserver) AgentTypeExist(implant string) bool {
 	for _, agent := range t.payloads {
-		if agent.Data["name"].(string) == ctx["name"].(string) {
-			return t.plugins.AgentProcess(ctx, request)
+		if agent.Data["name"].(string) == implant {
+			return true
 		}
+	}
+
+	return false
+}
+
+func (t *Teamserver) AgentProcessRequest(implant string, ctx map[string]any, request []byte) ([]byte, error) {
+	if t.AgentTypeExist(implant) {
+		return t.plugins.AgentProcess(implant, ctx, request)
 	}
 
 	return nil, errors.New("agent to process request not found")
 }
 
+// AgentGenerate
+// TODO: change the function type to be AgentGenerate(implant, context, config)
 func (t *Teamserver) AgentGenerate(ctx map[string]any, config map[string]any) (string, []byte, map[string]any, error) {
-	for _, agent := range t.payloads {
-		if agent.Data["name"].(string) == ctx["name"].(string) {
-			return t.plugins.AgentGenerate(ctx, config)
-		}
+	if t.AgentTypeExist(ctx["name"].(string)) {
+		return t.plugins.AgentGenerate(ctx, config)
 	}
 
 	return "", nil, nil, errors.New("agent to generate not found")
@@ -367,28 +371,52 @@ func (t *Teamserver) DatabaseAgentUpdate(uuid string, parent, status, note strin
 	return err
 }
 
-func (t *Teamserver) DatabaseAgentDisable(uuid string) error {
-	var err error
+func (t *Teamserver) DatabaseAgentExist(uuid string) (bool, error) {
+	return t.database.AgentExist(uuid)
+}
 
-	// insert the agent into the database
-	err = t.database.AgentDisable(uuid)
-	if err != nil {
-		return err
-	}
+func (t *Teamserver) DatabaseAgentType(uuid string) (string, error) {
+	return t.database.AgentType(uuid)
+}
 
-	return err
+func (t *Teamserver) DatabaseAgentParent(uuid string) (string, error) {
+	return t.database.AgentParent(uuid)
+}
+
+func (t *Teamserver) DatabaseAgentStatus(uuid string) (string, error) {
+	return t.database.AgentStatus(uuid)
+}
+
+func (t *Teamserver) DatabaseAgentNote(uuid string) (string, error) {
+	return t.database.AgentNote(uuid)
+}
+
+func (t *Teamserver) DatabaseAgentMetadata(uuid string) ([]byte, error) {
+	return t.database.AgentMetadata(uuid)
+}
+
+func (t *Teamserver) DatabaseAgentHidden(uuid string) (bool, error) {
+	return t.database.AgentHidden(uuid)
+}
+
+func (t *Teamserver) DatabaseAgentDisabled(uuid string) (bool, error) {
+	return t.database.AgentDisabled(uuid)
+}
+
+func (t *Teamserver) DatabaseAgentSetStatus(uuid string, status string) error {
+	return t.database.AgentSetStatus(uuid, status)
+}
+
+func (t *Teamserver) DatabaseAgentSetNote(uuid string, note string) error {
+	return t.database.AgentSetNote(uuid, note)
+}
+
+func (t *Teamserver) DatabaseAgentSetDisabled(uuid string, disabled bool) error {
+	return t.database.AgentSetDisabled(uuid, disabled)
 }
 
 func (t *Teamserver) DatabaseAgentSetHide(uuid string, hide bool) error {
-	var err error
-
-	// insert the agent into the database
-	err = t.database.AgentSetHide(uuid, hide)
-	if err != nil {
-		return err
-	}
-
-	return err
+	return t.database.AgentSetHide(uuid, hide)
 }
 
 func (t *Teamserver) DatabaseAgentConsole(uuid string) ([]map[string]any, error) {

@@ -58,9 +58,16 @@ func (db *Database) AgentInsert(uuid, _type, parent, status, note string, metada
 
 func (db *Database) AgentUpdate(uuid, parent, status, note string, metadata []byte) error {
 	var (
-		stmt *sql.Stmt
-		err  error
+		stmt  *sql.Stmt
+		err   error
+		exist bool
 	)
+
+	if exist, err = db.AgentExist(uuid); err != nil {
+		return err
+	} else if !exist {
+		return errors.New("agent not exist")
+	}
 
 	// create sql insert statement
 	if stmt, err = db.sqlite.Prepare(`
@@ -109,7 +116,7 @@ func (db *Database) AgentExist(uuid string) (bool, error) {
 			return false, err
 		}
 
-		if NumRows > 1 {
+		if NumRows >= 1 {
 			return true, err
 		} else {
 			return false, err
@@ -119,11 +126,281 @@ func (db *Database) AgentExist(uuid string) (bool, error) {
 	return false, nil
 }
 
-func (db *Database) AgentDisable(uuid string) error {
+func (db *Database) AgentMetadata(uuid string) ([]byte, error) {
 	var (
-		stmt *sql.Stmt
-		err  error
+		stmt     *sql.Stmt
+		err      error
+		metadata []byte
+		exist    bool
 	)
+
+	if exist, err = db.AgentExist(uuid); err != nil {
+		return nil, err
+	} else if !exist {
+		return nil, errors.New("agent not exist")
+	}
+
+	stmt, err = db.sqlite.Prepare("SELECT metadata FROM Agents WHERE uuid = ?")
+	if err != nil {
+		logger.DebugError("sqlite.Prepare failed: %v", err)
+		return nil, err
+	}
+
+	err = stmt.QueryRow(uuid).Scan(&metadata)
+	if err != nil {
+		logger.DebugError("stmt.Query failed: %v", err)
+		return nil, err
+	}
+
+	return metadata, err
+}
+
+func (db *Database) AgentType(uuid string) (string, error) {
+	var (
+		stmt  *sql.Stmt
+		err   error
+		_type string
+		exist bool
+	)
+
+	if exist, err = db.AgentExist(uuid); err != nil {
+		return "", err
+	} else if !exist {
+		return "", errors.New("agent not exist")
+	}
+
+	stmt, err = db.sqlite.Prepare("SELECT type FROM Agents WHERE uuid = ?")
+	if err != nil {
+		logger.DebugError("sqlite.Prepare failed: %v", err)
+		return "", err
+	}
+
+	err = stmt.QueryRow(uuid).Scan(&_type)
+	if err != nil {
+		logger.DebugError("stmt.Query failed: %v", err)
+		return "", err
+	}
+
+	return _type, err
+}
+
+func (db *Database) AgentParent(uuid string) (string, error) {
+	var (
+		stmt   *sql.Stmt
+		err    error
+		parent string
+		exist  bool
+	)
+
+	if exist, err = db.AgentExist(uuid); err != nil {
+		return "", err
+	} else if !exist {
+		return "", errors.New("agent not exist")
+	}
+
+	stmt, err = db.sqlite.Prepare("SELECT parent FROM Agents WHERE uuid = ?")
+	if err != nil {
+		logger.DebugError("sqlite.Prepare failed: %v", err)
+		return "", err
+	}
+
+	err = stmt.QueryRow(uuid).Scan(&parent)
+	if err != nil {
+		logger.DebugError("stmt.Query failed: %v", err)
+		return "", err
+	}
+
+	return parent, err
+}
+
+func (db *Database) AgentStatus(uuid string) (string, error) {
+	var (
+		stmt   *sql.Stmt
+		err    error
+		status string
+		exist  bool
+	)
+
+	if exist, err = db.AgentExist(uuid); err != nil {
+		return "", err
+	} else if !exist {
+		return "", errors.New("agent not exist")
+	}
+
+	stmt, err = db.sqlite.Prepare("SELECT status FROM Agents WHERE uuid = ?")
+	if err != nil {
+		logger.DebugError("sqlite.Prepare failed: %v", err)
+		return "", err
+	}
+
+	err = stmt.QueryRow(uuid).Scan(&status)
+	if err != nil {
+		logger.DebugError("stmt.Query failed: %v", err)
+		return "", err
+	}
+
+	return status, err
+}
+
+func (db *Database) AgentNote(uuid string) (string, error) {
+	var (
+		stmt  *sql.Stmt
+		err   error
+		note  string
+		exist bool
+	)
+
+	if exist, err = db.AgentExist(uuid); err != nil {
+		return "", err
+	} else if !exist {
+		return "", errors.New("agent not exist")
+	}
+
+	stmt, err = db.sqlite.Prepare("SELECT note FROM Agents WHERE uuid = ?")
+	if err != nil {
+		logger.DebugError("sqlite.Prepare failed: %v", err)
+		return "", err
+	}
+
+	err = stmt.QueryRow(uuid).Scan(&note)
+	if err != nil {
+		logger.DebugError("stmt.Query failed: %v", err)
+		return "", err
+	}
+
+	return note, err
+}
+
+func (db *Database) AgentDisabled(uuid string) (bool, error) {
+	var (
+		stmt     *sql.Stmt
+		err      error
+		disabled bool
+		exist    bool
+	)
+
+	if exist, err = db.AgentExist(uuid); err != nil {
+		return false, err
+	} else if !exist {
+		return false, errors.New("agent not exist")
+	}
+
+	stmt, err = db.sqlite.Prepare("SELECT disabled FROM Agents WHERE uuid = ?")
+	if err != nil {
+		logger.DebugError("sqlite.Prepare failed: %v", err)
+		return false, err
+	}
+
+	err = stmt.QueryRow(uuid).Scan(&disabled)
+	if err != nil {
+		logger.DebugError("stmt.Query failed: %v", err)
+		return false, err
+	}
+
+	return false, err
+}
+
+func (db *Database) AgentHidden(uuid string) (bool, error) {
+	var (
+		stmt   *sql.Stmt
+		err    error
+		hidden bool
+		exist  bool
+	)
+
+	if exist, err = db.AgentExist(uuid); err != nil {
+		return false, err
+	} else if !exist {
+		return false, errors.New("agent not exist")
+	}
+
+	stmt, err = db.sqlite.Prepare("SELECT hide FROM Agents WHERE uuid = ?")
+	if err != nil {
+		logger.DebugError("sqlite.Prepare failed: %v", err)
+		return false, err
+	}
+
+	err = stmt.QueryRow(uuid).Scan(&hidden)
+	if err != nil {
+		logger.DebugError("stmt.Query failed: %v", err)
+		return false, err
+	}
+
+	return hidden, err
+}
+
+func (db *Database) AgentSetStatus(uuid string, status string) error {
+	var (
+		stmt  *sql.Stmt
+		err   error
+		exist bool
+	)
+
+	if exist, err = db.AgentExist(uuid); err != nil {
+		return err
+	} else if !exist {
+		return errors.New("agent not exist")
+	}
+
+	// create sql insert statement
+	if stmt, err = db.sqlite.Prepare(`
+        UPDATE Agents SET status = ? WHERE uuid = ?
+    `); err != nil {
+		logger.DebugError("sqlite.Prepare failed: %v", err)
+		return err
+	}
+
+	// insert the data into the created sql statement
+	if _, err = stmt.Exec(status, uuid); err != nil {
+		logger.DebugError("stmt.Exec failed: %v", err)
+		return err
+	}
+
+	return err
+}
+
+func (db *Database) AgentSetNote(uuid string, note string) error {
+	var (
+		stmt  *sql.Stmt
+		err   error
+		exist bool
+	)
+
+	if exist, err = db.AgentExist(uuid); err != nil {
+		return err
+	} else if !exist {
+		return errors.New("agent not exist")
+	}
+
+	// create sql insert statement
+	if stmt, err = db.sqlite.Prepare(`
+        UPDATE Agents SET note = ? WHERE uuid = ?
+    `); err != nil {
+		logger.DebugError("sqlite.Prepare failed: %v", err)
+		return err
+	}
+
+	// insert the data into the created sql statement
+	if _, err = stmt.Exec(note, uuid); err != nil {
+		logger.DebugError("stmt.Exec failed: %v", err)
+		return err
+	}
+
+	return err
+}
+
+func (db *Database) AgentSetDisabled(uuid string, disabled bool) error {
+	var (
+		stmt  *sql.Stmt
+		err   error
+		exist bool
+	)
+
+	if exist, err = db.AgentExist(uuid); err != nil {
+		return err
+	} else if !exist {
+		return errors.New("agent not exist")
+	}
 
 	// create sql insert statement
 	if stmt, err = db.sqlite.Prepare(`
@@ -134,7 +411,7 @@ func (db *Database) AgentDisable(uuid string) error {
 	}
 
 	// insert the data into the created sql statement
-	if _, err = stmt.Exec(true, uuid); err != nil {
+	if _, err = stmt.Exec(disabled, uuid); err != nil {
 		logger.DebugError("stmt.Exec failed: %v", err)
 		return err
 	}
@@ -144,9 +421,16 @@ func (db *Database) AgentDisable(uuid string) error {
 
 func (db *Database) AgentSetHide(uuid string, hide bool) error {
 	var (
-		stmt *sql.Stmt
-		err  error
+		stmt  *sql.Stmt
+		err   error
+		exist bool
 	)
+
+	if exist, err = db.AgentExist(uuid); err != nil {
+		return err
+	} else if !exist {
+		return errors.New("agent not exist")
+	}
 
 	// create sql insert statement
 	if stmt, err = db.sqlite.Prepare(`
@@ -204,7 +488,14 @@ func (db *Database) AgentConsole(uuid string) ([][]byte, error) {
 		list  [][]byte
 		query *sql.Rows
 		err   error
+		exist bool
 	)
+
+	if exist, err = db.AgentExist(uuid); err != nil {
+		return nil, err
+	} else if !exist {
+		return nil, errors.New("agent not exist")
+	}
 
 	query, err = db.sqlite.Query("SELECT data FROM AgentConsole WHERE uuid = ?", uuid)
 	if err != nil {
@@ -228,9 +519,16 @@ func (db *Database) AgentConsole(uuid string) ([][]byte, error) {
 
 func (db *Database) AgentConsoleInsert(uuid string, data []byte) error {
 	var (
-		stmt *sql.Stmt
-		err  error
+		stmt  *sql.Stmt
+		err   error
+		exist bool
 	)
+
+	if exist, err = db.AgentExist(uuid); err != nil {
+		return err
+	} else if !exist {
+		return errors.New("agent not exist")
+	}
 
 	// create sql insert statement
 	if stmt, err = db.sqlite.Prepare(`
