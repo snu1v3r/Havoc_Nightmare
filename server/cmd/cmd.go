@@ -52,6 +52,6 @@ func serverRun(cmd *cobra.Command, args []string) error {
 
 func startMenu() {
 	fmt.Print(colors.Red("              _______           _______  _______ \n    │\\     /│(  ___  )│\\     /│(  ___  )(  ____ \\\n    │ )   ( ││ (   ) ││ )   ( ││ (   ) ││ (    \\/\n    │ (___) ││ (___) ││ │   │ ││ │   │ ││ │      \n    │  ___  ││  ___  │( (   ) )│ │   │ ││ │      \n    │ (   ) ││ (   ) │ \\ \\_/ / │ │   │ ││ │      \n    │ )   ( ││ )   ( │  \\   /  │ (___) ││ (____/\\\n    │/     \\││/     \\│   \\_/   (_______)(_______/"))
-	fmt.Printf(" by %v\n\n", colors.BoldBlue("InfinityCurve.org"))
+	fmt.Printf(" by %v\n\n", colors.BoldBlue("@C5pider"))
 	fmt.Println("  	", colors.Red("pwn"), "and", colors.Blue("elevate"), "until it's done\n")
 }
