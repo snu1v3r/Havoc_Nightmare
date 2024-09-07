@@ -1,5 +1,6 @@
 #include <Havoc.h>
 #include <QTimer>
+#include <QSplashScreen>
 #include <QtCore5Compat/QTextCodec>
 
 auto HttpErrorToString(
@@ -108,6 +109,9 @@ auto HavocClient::Main(
     if ( data.empty() || ! Connector->pressedConnect() ) {
         return;
     }
+
+    // splash_screen = new QSplashScreen( QPixmap( "data/SplashScreen.png" ) );
+    // splash_screen->show();
 
     if ( ! SetupDirectory() ) {
         spdlog::error( "failed to setup configuration directory. aborting" );
@@ -416,7 +420,9 @@ auto HavocClient::SetupThreads() -> void {
     // only start the event worker once the meta worker finished
     // pulling all the listeners, agents, etc. from the server
     //
-    QObject::connect( MetaWorker.Worker, &HcMetaWorker::eventWorkerRun, this, [&](){ Events.Thread->start(); } );
+    QObject::connect( MetaWorker.Worker, &HcMetaWorker::eventWorkerRun, this, [&](){
+        Events.Thread->start();
+    } );
 
     MetaWorker.Thread->start();
 }

@@ -95,7 +95,8 @@ private:
     std::vector<NamedObject>   callbacks = {};
     std::vector<ActionObject*> actions   = {};
 
-    QDir client_dir = {};
+    QDir           client_dir    = {};
+    QSplashScreen* splash_screen = {};
 
 public:
     HcMainWindow* Gui    = nullptr;

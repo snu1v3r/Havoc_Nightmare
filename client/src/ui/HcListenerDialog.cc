@@ -144,7 +144,7 @@ auto HcListenerDialog::save() -> void {
         data = {
             { "name",     InputName->text().toStdString() },
             { "protocol", protocol.name },
-            { "data",     protocol.instance.attr( "save" )() }
+            { "config",   protocol.instance.attr( "save" )() }
         };
     } catch ( py11::error_already_set &eas ) {
         Helper::MessageBox(
