@@ -2,7 +2,7 @@ package plugin
 
 import "errors"
 
-func (s *System) AgentGenerate(ctx map[string]any, config map[string]any) (string, []byte, map[string]any, error) {
+func (s *System) AgentGenerate(implant string, config map[string]any) (string, []byte, map[string]any, error) {
 	var (
 		err  error
 		ext  *Plugin
@@ -20,8 +20,8 @@ func (s *System) AgentGenerate(ctx map[string]any, config map[string]any) (strin
 			return true
 		}
 
-		if ctx["name"] == ext.Data["name"] {
-			name, bin, cfg, err = ext.AgentGenerate(ctx, config)
+		if implant == ext.Data["name"] {
+			name, bin, cfg, err = ext.AgentGenerate(config)
 			return false
 		}
 

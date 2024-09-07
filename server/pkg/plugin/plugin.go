@@ -54,7 +54,7 @@ type AgentInterface interface {
 	AgentRestore(uuid, parent, status, note string, serialized []byte) error
 	AgentRemove(uuid string) error
 	AgentUpdate(uuid string) error
-	AgentGenerate(ctx map[string]any, config map[string]any) (string, []byte, map[string]any, error)
+	AgentGenerate(config map[string]any) (string, []byte, map[string]any, error)
 	AgentExecute(uuid string, data map[string]any, wait bool) (map[string]any, error)
 	AgentProcess(context map[string]any, request []byte) ([]byte, error)
 	AgentGet(uuid string) (map[string]any, error)

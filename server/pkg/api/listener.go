@@ -2,7 +2,9 @@ package api
 
 import (
 	"Havoc/pkg/logger"
+	"Havoc/pkg/utils"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"io"
@@ -35,46 +37,23 @@ func (api *ServerApi) listenerStart(ctx *gin.Context) {
 	// unmarshal the bytes into a map
 	if err = json.Unmarshal(body, &listener); err != nil {
 		logger.DebugError("Failed to unmarshal bytes to map: " + err.Error())
-		return
-	}
-
-	if val, ok := listener["name"]; ok {
-		// get name from listener start request
-		switch val.(type) {
-		case string:
-			name = val.(string)
-		default:
-			logger.DebugError("Failed retrieve name: invalid type")
-			goto ERROR
-		}
-	} else {
-		logger.DebugError("failed retrieve listener name: not found")
+		err = errors.New("invalid request")
 		goto ERROR
 	}
 
-	if val, ok := listener["protocol"]; ok {
-		// get protocol from listener start request
-		switch val.(type) {
-		case string:
-			protocol = val.(string)
-		default:
-			logger.DebugError("Failed retrieve protocol: invalid type")
-			goto ERROR
-		}
-	} else {
-		logger.DebugError("failed retrieve listener protocol: not found")
+	name, err = utils.MapKey[string](listener, "name")
+	if err != nil {
 		goto ERROR
 	}
 
-	if val, ok := listener["data"]; ok {
-		// get options from listener start request
-		switch val.(type) {
-		case map[string]any:
-			options = val.(map[string]any)
-		default:
-			logger.DebugError("Failed retrieve listener data: invalid type")
-			goto ERROR
-		}
+	protocol, err = utils.MapKey[string](listener, "protocol")
+	if err != nil {
+		goto ERROR
+	}
+
+	options, err = utils.MapKey[map[string]any](listener, "data")
+	if err != nil {
+		goto ERROR
 	}
 
 	if err = api.havoc.ListenerStart(name, protocol, options); err != nil {
@@ -116,35 +95,26 @@ func (api *ServerApi) listenerStop(ctx *gin.Context) {
 	// unmarshal the bytes into a map
 	if err = json.Unmarshal(body, &listener); err != nil {
 		logger.DebugError("Failed to unmarshal bytes to map: " + err.Error())
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		return
+		err = errors.New("invalid request")
+		goto ERROR
 	}
 
-	if val, ok := listener["name"]; ok {
-		// get name from listener start request
-		switch val.(type) {
-		case string:
-			name = val.(string)
-		default:
-			logger.DebugError("failed retrieve name: invalid type")
-			ctx.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-	} else {
-		logger.DebugError("failed retrieve listener name: not found")
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		return
+	name, err = utils.MapKey[string](listener, "name")
+	if err != nil {
+		goto ERROR
 	}
 
 	if err = api.havoc.ListenerStop(name); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
+		goto ERROR
 	}
 
 	ctx.AbortWithStatus(http.StatusOK)
 	return
+
+ERROR:
+	ctx.JSON(http.StatusInternalServerError, gin.H{
+		"error": err.Error(),
+	})
 }
 
 func (api *ServerApi) listenerRestart(ctx *gin.Context) {
@@ -172,35 +142,26 @@ func (api *ServerApi) listenerRestart(ctx *gin.Context) {
 	// unmarshal the bytes into a map
 	if err = json.Unmarshal(body, &listener); err != nil {
 		logger.DebugError("Failed to unmarshal bytes to map: " + err.Error())
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		return
+		err = errors.New("invalid request")
+		goto ERROR
 	}
 
-	if val, ok := listener["name"]; ok {
-		// get name from listener start request
-		switch val.(type) {
-		case string:
-			name = val.(string)
-		default:
-			logger.DebugError("failed retrieve name: invalid type")
-			ctx.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-	} else {
-		logger.DebugError("failed retrieve listener name: not found")
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		return
+	name, err = utils.MapKey[string](listener, "name")
+	if err != nil {
+		goto ERROR
 	}
 
 	if err = api.havoc.ListenerRestart(name); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
+		goto ERROR
 	}
 
 	ctx.AbortWithStatus(http.StatusOK)
 	return
+
+ERROR:
+	ctx.JSON(http.StatusInternalServerError, gin.H{
+		"error": err.Error(),
+	})
 }
 
 func (api *ServerApi) listenerRemove(ctx *gin.Context) {
@@ -228,44 +189,35 @@ func (api *ServerApi) listenerRemove(ctx *gin.Context) {
 	// unmarshal the bytes into a map
 	if err = json.Unmarshal(body, &listener); err != nil {
 		logger.DebugError("Failed to unmarshal bytes to map: " + err.Error())
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		return
+		err = errors.New("invalid request")
+		goto ERROR
 	}
 
-	if val, ok := listener["name"]; ok {
-		// get name from listener start request
-		switch val.(type) {
-		case string:
-			name = val.(string)
-		default:
-			logger.DebugError("failed retrieve name: invalid type")
-			ctx.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-	} else {
-		logger.DebugError("failed retrieve listener name: not found")
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		return
+	name, err = utils.MapKey[string](listener, "name")
+	if err != nil {
+		goto ERROR
 	}
 
 	if err = api.havoc.ListenerRemove(name); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
+		goto ERROR
 	}
 
 	ctx.AbortWithStatus(http.StatusOK)
 	return
+
+ERROR:
+	ctx.JSON(http.StatusInternalServerError, gin.H{
+		"error": err.Error(),
+	})
 }
 
 func (api *ServerApi) listenerEdit(ctx *gin.Context) {
 	var (
-		body   []byte
-		err    error
-		data   map[string]any
-		config map[string]any
-		name   string
+		body     []byte
+		err      error
+		listener map[string]any
+		config   map[string]any
+		name     string
 	)
 
 	if !api.sanityCheck(ctx) {
@@ -282,52 +234,34 @@ func (api *ServerApi) listenerEdit(ctx *gin.Context) {
 	logger.Debug("got request on /api/listener/edit: " + fmt.Sprintf("%s", string(body)))
 
 	// unmarshal the bytes into a map
-	if err = json.Unmarshal(body, &data); err != nil {
+	if err = json.Unmarshal(body, &listener); err != nil {
 		logger.DebugError("Failed to unmarshal bytes to map: " + err.Error())
-		return
-	}
-
-	if val, ok := data["name"]; ok {
-		// get protocol from listener start request
-		switch val.(type) {
-		case string:
-			name = val.(string)
-		default:
-			logger.DebugError("failed retrieve listener name: invalid type")
-			goto ERROR
-		}
-	} else {
-		logger.DebugError("failed retrieve listener name: not found")
+		err = errors.New("invalid request")
 		goto ERROR
 	}
 
-	if val, ok := data["data"]; ok {
-		// get protocol from listener start request
-		switch val.(type) {
-		case map[string]any:
-			config = val.(map[string]any)
-		default:
-			logger.DebugError("failed retrieve listener data: invalid type")
-			goto ERROR
-		}
-	} else {
-		logger.DebugError("failed retrieve listener data: not found")
+	name, err = utils.MapKey[string](listener, "name")
+	if err != nil {
+		goto ERROR
+	}
+
+	config, err = utils.MapKey[map[string]any](listener, "config")
+	if err != nil {
 		goto ERROR
 	}
 
 	// process listener event
 	if err = api.havoc.ListenerEdit(name, config); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
+		goto ERROR
 	}
 
 	ctx.AbortWithStatus(http.StatusOK)
 	return
 
 ERROR:
-	ctx.AbortWithStatus(http.StatusInternalServerError)
+	ctx.JSON(http.StatusInternalServerError, gin.H{
+		"error": err.Error(),
+	})
 }
 
 func (api *ServerApi) listenerEvent(ctx *gin.Context) {
@@ -354,45 +288,36 @@ func (api *ServerApi) listenerEvent(ctx *gin.Context) {
 	// unmarshal the bytes into a map
 	if err = json.Unmarshal(body, &event); err != nil {
 		logger.DebugError("Failed to unmarshal bytes to map: " + err.Error())
-		return
+		err = errors.New("invalid request")
+		goto ERROR
 	}
 
-	if val, ok := event["protocol"]; ok {
-		// get protocol from listener start request
-		switch val.(type) {
-		case string:
-			protocol = val.(string)
-		default:
-			logger.DebugError("Failed retrieve protocol: invalid type")
-			goto ERROR
-		}
-	} else {
-		logger.DebugError("failed retrieve listener protocol: not found")
+	protocol, err = utils.MapKey[string](event, "protocol")
+	if err != nil {
 		goto ERROR
 	}
 
 	// process listener event
 	if event, err = api.havoc.ListenerEvent(protocol, event); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
+		goto ERROR
 	}
 
 	ctx.JSON(http.StatusOK, event)
 	return
 
 ERROR:
-	ctx.AbortWithStatus(http.StatusInternalServerError)
+	ctx.JSON(http.StatusInternalServerError, gin.H{
+		"error": err.Error(),
+	})
 }
 
 func (api *ServerApi) listenerConfig(ctx *gin.Context) {
 	var (
-		body   []byte
-		err    error
-		data   map[string]any
-		config map[string]any
-		name   string
+		body     []byte
+		err      error
+		listener map[string]any
+		config   map[string]any
+		name     string
 	)
 
 	if !api.sanityCheck(ctx) {
@@ -409,38 +334,29 @@ func (api *ServerApi) listenerConfig(ctx *gin.Context) {
 	logger.Debug("got request on /api/listener/config:" + fmt.Sprintf("%s", string(body)))
 
 	// unmarshal the bytes into a map
-	if err = json.Unmarshal(body, &data); err != nil {
+	if err = json.Unmarshal(body, &listener); err != nil {
 		logger.DebugError("Failed to unmarshal bytes to map: " + err.Error())
-		return
+		err = errors.New("invalid request")
+		goto ERROR
 	}
 
-	if val, ok := data["name"]; ok {
-		// get protocol from listener start request
-		switch val.(type) {
-		case string:
-			name = val.(string)
-		default:
-			logger.DebugError("failed retrieve listener name: invalid type")
-			goto ERROR
-		}
-	} else {
-		logger.DebugError("failed retrieve listener name: not found")
+	name, err = utils.MapKey[string](listener, "name")
+	if err != nil {
 		goto ERROR
 	}
 
 	// process listener event
 	if config, err = api.havoc.ListenerConfig(name); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
+		goto ERROR
 	}
 
 	ctx.JSON(http.StatusOK, config)
 	return
 
 ERROR:
-	ctx.AbortWithStatus(http.StatusInternalServerError)
+	ctx.JSON(http.StatusInternalServerError, gin.H{
+		"error": err.Error(),
+	})
 }
 
 func (api *ServerApi) listenerList(ctx *gin.Context) {

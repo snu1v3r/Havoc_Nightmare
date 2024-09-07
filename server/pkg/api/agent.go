@@ -2,6 +2,7 @@ package api
 
 import (
 	"Havoc/pkg/logger"
+	"Havoc/pkg/utils"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -13,15 +14,12 @@ import (
 
 func (api *ServerApi) agentBuild(ctx *gin.Context) {
 	var (
-		body     []byte
-		context  map[string]any
-		config   map[string]any
-		agent    map[string]any
-		cfg      map[string]any
-		name     string
-		username string
-		ok       bool
-		err      error
+		body   []byte
+		config map[string]any
+		agent  map[string]any
+		cfg    map[string]any
+		name   string
+		err    error
 	)
 
 	if !api.sanityCheck(ctx) {
@@ -44,56 +42,24 @@ func (api *ServerApi) agentBuild(ctx *gin.Context) {
 		goto ERROR
 	}
 
-	//
-	// get name from agent request
-	//
-	switch agent["name"].(type) {
-	case string:
-		name = agent["name"].(string)
-	default:
-		logger.DebugError("Failed retrieve agent name: invalid type")
-		err = errors.New("invalid request")
+	name, err = utils.MapKey[string](agent, "name")
+	if err != nil {
 		goto ERROR
 	}
 
-	//
-	// get config from agent request
-	//
-	switch agent["config"].(type) {
-	case map[string]any:
-		config = agent["config"].(map[string]any)
-	default:
-		logger.DebugError("Failed retrieve agent config: invalid type")
-		err = errors.New("invalid request")
+	config, err = utils.MapKey[map[string]any](agent, "config")
+	if err != nil {
 		goto ERROR
 	}
 
-	//
-	// get the username from the token
-	//
-	if username, ok = api.tokenUser(ctx.GetHeader(ApiTokenHeader)); !ok {
-		logger.DebugError("Failed to authenticate token: couldn't get username from token")
-		err = errors.New("failed to authenticate token")
-		goto ERROR
-	}
-
-	context = map[string]any{
-		"name": name,
-		"user": username,
-	}
-
-	//
 	// interact with the plugin to generate a payload
-	//
-	name, body, cfg, err = api.havoc.AgentGenerate(context, config)
+	name, body, cfg, err = api.havoc.AgentGenerate(name, config)
 	if err != nil {
 		logger.DebugError("Failed to generate agent payload: %v", err)
 		goto ERROR
 	}
 
-	//
 	// return base64 encoded payload
-	//
 	ctx.JSON(http.StatusOK, gin.H{
 		"payload":  base64.StdEncoding.EncodeToString(body),
 		"filename": name,
@@ -108,6 +74,7 @@ ERROR:
 	})
 }
 
+// agentExecute
 func (api *ServerApi) agentExecute(ctx *gin.Context) {
 	var (
 		body     []byte
@@ -138,33 +105,18 @@ func (api *ServerApi) agentExecute(ctx *gin.Context) {
 		return
 	}
 
-	// get uuid from client request
-	switch response["uuid"].(type) {
-	case string:
-		uuid = response["uuid"].(string)
-	default:
-		logger.DebugError("Failed retrieve agent uuid: invalid type")
-		err = errors.New("invalid request")
+	uuid, err = utils.MapKey[string](response, "uuid")
+	if err != nil {
 		goto ERROR
 	}
 
-	// get data from client request
-	switch response["data"].(type) {
-	case map[string]any:
-		data = response["data"].(map[string]any)
-	default:
-		logger.DebugError("Failed retrieve agent data: invalid type")
-		err = errors.New("invalid request")
+	data, err = utils.MapKey[map[string]any](response, "data")
+	if err != nil {
 		goto ERROR
 	}
 
-	// get wait status from client request
-	switch response["wait"].(type) {
-	case bool:
-		wait = response["wait"].(bool)
-	default:
-		logger.DebugError("Failed retrieve agent wait status: invalid type")
-		err = errors.New("invalid request")
+	wait, err = utils.MapKey[bool](response, "wait")
+	if err != nil {
 		goto ERROR
 	}
 
@@ -215,33 +167,13 @@ func (api *ServerApi) agentNote(ctx *gin.Context) {
 		return
 	}
 
-	if val, ok := response["uuid"]; ok {
-		// get uuid from client request
-		switch val.(type) {
-		case string:
-			uuid = val.(string)
-		default:
-			logger.DebugError("failed retrieve agent uuid: invalid type")
-			err = errors.New("invalid request")
-			goto ERROR
-		}
-	} else {
-		err = errors.New("invalid request")
+	uuid, err = utils.MapKey[string](response, "uuid")
+	if err != nil {
 		goto ERROR
 	}
 
-	if val, ok := response["note"]; ok {
-		// get uuid from client request
-		switch val.(type) {
-		case string:
-			note = response["note"].(string)
-		default:
-			logger.DebugError("failed retrieve agent note: invalid type")
-			err = errors.New("invalid request")
-			goto ERROR
-		}
-	} else {
-		err = errors.New("invalid request")
+	note, err = utils.MapKey[string](response, "note")
+	if err != nil {
 		goto ERROR
 	}
 
@@ -338,21 +270,11 @@ func (api *ServerApi) agentRemove(ctx *gin.Context) {
 	if err = json.Unmarshal(body, &response); err != nil {
 		logger.DebugError("failed to unmarshal bytes to map: " + err.Error())
 		err = errors.New("invalid request")
-		return
+		goto ERROR
 	}
 
-	if val, ok := response["uuid"]; ok {
-		// get uuid from client request
-		switch val.(type) {
-		case string:
-			uuid = val.(string)
-		default:
-			logger.DebugError("failed retrieve agent uuid: invalid type")
-			err = errors.New("invalid request")
-			goto ERROR
-		}
-	} else {
-		err = errors.New("invalid request")
+	uuid, err = utils.MapKey[string](response, "uuid")
+	if err != nil {
 		goto ERROR
 	}
 
@@ -395,21 +317,11 @@ func (api *ServerApi) agentConsole(ctx *gin.Context) {
 	if err = json.Unmarshal(body, &response); err != nil {
 		logger.DebugError("failed to unmarshal bytes to map: " + err.Error())
 		err = errors.New("invalid request")
-		return
+		goto ERROR
 	}
 
-	if val, ok := response["uuid"]; ok {
-		// get uuid from client request
-		switch val.(type) {
-		case string:
-			uuid = val.(string)
-		default:
-			logger.DebugError("failed retrieve agent uuid: invalid type")
-			err = errors.New("invalid request")
-			goto ERROR
-		}
-	} else {
-		err = errors.New("invalid request")
+	uuid, err = utils.MapKey[string](response, "uuid")
+	if err != nil {
 		goto ERROR
 	}
 

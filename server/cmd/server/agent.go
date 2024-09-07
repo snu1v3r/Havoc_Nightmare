@@ -303,11 +303,9 @@ func (t *Teamserver) AgentProcessRequest(implant string, ctx map[string]any, req
 	return nil, errors.New("agent to process request not found")
 }
 
-// AgentGenerate
-// TODO: change the function type to be AgentGenerate(implant, context, config)
-func (t *Teamserver) AgentGenerate(ctx map[string]any, config map[string]any) (string, []byte, map[string]any, error) {
-	if t.AgentTypeExist(ctx["name"].(string)) {
-		return t.plugins.AgentGenerate(ctx, config)
+func (t *Teamserver) AgentGenerate(implant string, config map[string]any) (string, []byte, map[string]any, error) {
+	if t.AgentTypeExist(implant) {
+		return t.plugins.AgentGenerate(implant, config)
 	}
 
 	return "", nil, nil, errors.New("agent to generate not found")

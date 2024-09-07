@@ -51,7 +51,7 @@ type HavocInterface interface {
 	AgentType(uuid string) (string, error)
 	AgentRemove(uuid string) error
 	AgentList() []string
-	AgentGenerate(ctx map[string]any, config map[string]any) (string, []byte, map[string]any, error)
+	AgentGenerate(implant string, config map[string]any) (string, []byte, map[string]any, error)
 	AgentExecute(uuid string, data map[string]any, wait bool) (map[string]any, error)
 	AgentNote(uuid string) (string, error)
 	AgentSetNote(uuid string, note string) error

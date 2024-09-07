@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"fmt"
 	"math/rand"
+	"reflect"
 	"time"
 )
 
@@ -29,4 +31,18 @@ func GenerateID(n int) string {
 	}
 
 	return string(b)
+}
+
+func MapKey[T any](m map[string]any, key string) (T, error) {
+	val, ok := m[key]
+	if !ok {
+		return *new(T), fmt.Errorf("key %q not found", key)
+	}
+
+	typedVal, ok := val.(T)
+	if !ok {
+		return *new(T), fmt.Errorf("key %q is of type %T, expected type is %s", key, val, reflect.TypeOf((*T)(nil)).Elem())
+	}
+
+	return typedVal, nil
 }
