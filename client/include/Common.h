@@ -31,7 +31,6 @@
 #include <QThread>
 #include <QMenu>
 #include <QtConcurrent/QtConcurrent>
-#include <QSplashScreen>
 
 /* define namepsace */
 using     json = nlohmann::json;

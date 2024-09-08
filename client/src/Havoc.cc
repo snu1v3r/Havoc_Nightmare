@@ -110,9 +110,6 @@ auto HavocClient::Main(
         return;
     }
 
-    // splash_screen = new QSplashScreen( QPixmap( "data/SplashScreen.png" ) );
-    // splash_screen->show();
-
     if ( ! SetupDirectory() ) {
         spdlog::error( "failed to setup configuration directory. aborting" );
         return;
