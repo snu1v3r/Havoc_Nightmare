@@ -2,7 +2,7 @@ package plugin
 
 import "errors"
 
-func (s *System) AgentGenerate(implant string, config map[string]any) (string, []byte, map[string]any, error) {
+func (system *System) AgentGenerate(implant string, config map[string]any) (string, []byte, map[string]any, error) {
 	var (
 		err  error
 		ext  *Plugin
@@ -13,7 +13,7 @@ func (s *System) AgentGenerate(implant string, config map[string]any) (string, [
 
 	err = errors.New("agent not found")
 
-	s.loaded.Range(func(key, value any) bool {
+	system.loaded.Range(func(key, value any) bool {
 		ext = value.(*Plugin)
 
 		if ext.Type != TypeAgent {
@@ -31,7 +31,7 @@ func (s *System) AgentGenerate(implant string, config map[string]any) (string, [
 	return name, bin, cfg, err
 }
 
-func (s *System) AgentRemove(plugin, uuid string) error {
+func (system *System) AgentRemove(plugin, uuid string) error {
 	var (
 		err error
 		ext *Plugin
@@ -39,7 +39,7 @@ func (s *System) AgentRemove(plugin, uuid string) error {
 
 	err = errors.New("agent not found")
 
-	s.loaded.Range(func(key, value any) bool {
+	system.loaded.Range(func(key, value any) bool {
 		ext = value.(*Plugin)
 
 		if ext.Type != TypeAgent {
@@ -57,7 +57,7 @@ func (s *System) AgentRemove(plugin, uuid string) error {
 	return err
 }
 
-func (s *System) AgentRestore(plugin, uuid, parent, status, note string, serialized []byte) error {
+func (system *System) AgentRestore(plugin, uuid, parent, status, note string, serialized []byte) error {
 	var (
 		err error
 		ext *Plugin
@@ -65,7 +65,7 @@ func (s *System) AgentRestore(plugin, uuid, parent, status, note string, seriali
 
 	err = errors.New("agent not found")
 
-	s.loaded.Range(func(key, value any) bool {
+	system.loaded.Range(func(key, value any) bool {
 		ext = value.(*Plugin)
 
 		if ext.Type != TypeAgent {
@@ -83,7 +83,7 @@ func (s *System) AgentRestore(plugin, uuid, parent, status, note string, seriali
 	return err
 }
 
-func (s *System) AgentUpdate(plugin, uuid string) error {
+func (system *System) AgentUpdate(plugin, uuid string) error {
 	var (
 		err error
 		ext *Plugin
@@ -91,7 +91,7 @@ func (s *System) AgentUpdate(plugin, uuid string) error {
 
 	err = errors.New("agent not found")
 
-	s.loaded.Range(func(key, value any) bool {
+	system.loaded.Range(func(key, value any) bool {
 		ext = value.(*Plugin)
 
 		if ext.Type != TypeAgent {
@@ -109,7 +109,7 @@ func (s *System) AgentUpdate(plugin, uuid string) error {
 	return err
 }
 
-func (s *System) AgentExecute(plugin, uuid string, data map[string]any, wait bool) (map[string]any, error) {
+func (system *System) AgentExecute(plugin, uuid string, data map[string]any, wait bool) (map[string]any, error) {
 	var (
 		resp map[string]any
 		err  error
@@ -118,7 +118,7 @@ func (s *System) AgentExecute(plugin, uuid string, data map[string]any, wait boo
 
 	err = errors.New("agent not found")
 
-	s.loaded.Range(func(key, value any) bool {
+	system.loaded.Range(func(key, value any) bool {
 		ext = value.(*Plugin)
 
 		if ext.Type != TypeAgent {
@@ -136,7 +136,7 @@ func (s *System) AgentExecute(plugin, uuid string, data map[string]any, wait boo
 	return resp, err
 }
 
-func (s *System) AgentProcess(implant string, context map[string]any, request []byte) ([]byte, error) {
+func (system *System) AgentProcess(implant string, context map[string]any, request []byte) ([]byte, error) {
 	var (
 		err error
 		ext *Plugin
@@ -145,7 +145,7 @@ func (s *System) AgentProcess(implant string, context map[string]any, request []
 
 	err = errors.New("agent not found")
 
-	s.loaded.Range(func(key, value any) bool {
+	system.loaded.Range(func(key, value any) bool {
 		ext = value.(*Plugin)
 
 		if ext.Type != TypeAgent {
@@ -163,7 +163,7 @@ func (s *System) AgentProcess(implant string, context map[string]any, request []
 	return res, err
 }
 
-func (s *System) AgentGet(plugin, uuid string) (map[string]any, error) {
+func (system *System) AgentGet(plugin, uuid string) (map[string]any, error) {
 	var (
 		err error
 		ext *Plugin
@@ -172,7 +172,7 @@ func (s *System) AgentGet(plugin, uuid string) (map[string]any, error) {
 
 	err = errors.New("agent not found")
 
-	s.loaded.Range(func(key, value any) bool {
+	system.loaded.Range(func(key, value any) bool {
 		ext = value.(*Plugin)
 
 		if ext.Type != TypeAgent {

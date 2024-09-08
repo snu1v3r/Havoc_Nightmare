@@ -68,6 +68,52 @@ func (db *Database) ListenerUpdate(name, status string, config []byte) error {
 	return err
 }
 
+func (db *Database) ListenerSetConfig(name string, config []byte) error {
+	var (
+		stmt *sql.Stmt
+		err  error
+	)
+
+	// create sql insert statement
+	if stmt, err = db.sqlite.Prepare(`
+        UPDATE Listeners SET config = ? WHERE name = ?
+    `); err != nil {
+		logger.DebugError("sqlite.Prepare failed: %v", err)
+		return err
+	}
+
+	// insert the data into the created sql statement
+	if _, err = stmt.Exec(config, name); err != nil {
+		logger.DebugError("stmt.Exec failed: %v", err)
+		return err
+	}
+
+	return err
+}
+
+func (db *Database) ListenerSetStatus(name string, status string) error {
+	var (
+		stmt *sql.Stmt
+		err  error
+	)
+
+	// create sql insert statement
+	if stmt, err = db.sqlite.Prepare(`
+        UPDATE Listeners SET status = ? WHERE name = ?
+    `); err != nil {
+		logger.DebugError("sqlite.Prepare failed: %v", err)
+		return err
+	}
+
+	// insert the data into the created sql statement
+	if _, err = stmt.Exec(status, name); err != nil {
+		logger.DebugError("stmt.Exec failed: %v", err)
+		return err
+	}
+
+	return err
+}
+
 func (db *Database) ListenerExist(name string) (bool, error) {
 	var (
 		stmt *sql.Stmt

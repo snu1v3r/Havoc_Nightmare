@@ -94,7 +94,7 @@ func NewPluginSystem(havoc HavocInterface) *System {
 }
 
 // RegisterPlugin is going to register a specified havoc plugin
-func (s *System) RegisterPlugin(path string) (*Plugin, error) {
+func (system *System) RegisterPlugin(path string) (*Plugin, error) {
 	var (
 		err      error
 		open     *plugin.Plugin
@@ -127,11 +127,11 @@ func (s *System) RegisterPlugin(path string) (*Plugin, error) {
 	inter = lookup.(BasicInterface)
 
 	// try to register the plugin
-	register = inter.Register(s.havoc)
+	register = inter.Register(system.havoc)
 
 	// add plugin to the internal sync
 	// map and make it available
-	if ext, err = s.AddPlugin(register, lookup); err != nil {
+	if ext, err = system.AddPlugin(register, lookup); err != nil {
 		return nil, err
 	}
 
@@ -141,7 +141,7 @@ func (s *System) RegisterPlugin(path string) (*Plugin, error) {
 // AddPlugin the registered plugin to see if there
 // wasn't given any faulty or lacking info and
 // creates a havoc Plugin object
-func (s *System) AddPlugin(register map[string]any, inter any) (*Plugin, error) {
+func (system *System) AddPlugin(register map[string]any, inter any) (*Plugin, error) {
 	var (
 		ext = new(Plugin)
 		err error
@@ -184,16 +184,16 @@ func (s *System) AddPlugin(register map[string]any, inter any) (*Plugin, error) 
 	}
 
 	// sanity check interface and insert it into the plugin
-	if err = s.CheckAndInsertInterface(ext, inter); err != nil {
+	if err = system.CheckAndInsertInterface(ext, inter); err != nil {
 		return nil, err
 	}
 
-	if err = s.interactPlugin(ext); err != nil {
+	if err = system.interactPlugin(ext); err != nil {
 		return nil, err
 	}
 
 	// add the ext to the sync map
-	s.loaded.Store(utils.GenerateID(32), ext)
+	system.loaded.Store(utils.GenerateID(32), ext)
 
 	return ext, nil
 }
@@ -202,7 +202,7 @@ func (s *System) AddPlugin(register map[string]any, inter any) (*Plugin, error) 
 // this method checks if a specific plugin is exporting all the
 // needed methods for the returned plugin type, if it does then
 // cast the right interface to the plugin object
-func (s *System) CheckAndInsertInterface(extension *Plugin, inter any) error {
+func (system *System) CheckAndInsertInterface(extension *Plugin, inter any) error {
 	var (
 		reflection = reflect.TypeOf(inter)
 		ok         bool
@@ -313,13 +313,13 @@ func (s *System) CheckAndInsertInterface(extension *Plugin, inter any) error {
 // interactPlugin
 // interact with plugin by calling the plugin
 // register function for the type of plugin
-func (s *System) interactPlugin(extension *Plugin) error {
+func (system *System) interactPlugin(extension *Plugin) error {
 
 	switch extension.Type {
 	case TypeAgent:
 
 		extension.Data = extension.AgentRegister()
-		if err := s.havoc.AgentRegisterType(extension.Name, extension.Data); err != nil {
+		if err := system.havoc.AgentRegisterType(extension.Name, extension.Data); err != nil {
 			return err
 		}
 
@@ -328,7 +328,7 @@ func (s *System) interactPlugin(extension *Plugin) error {
 	case TypeListener:
 
 		extension.Data = extension.ListenerRegister()
-		if err := s.havoc.ListenerRegister(extension.Name, extension.Data); err != nil {
+		if err := system.havoc.ListenerRegister(extension.Name, extension.Data); err != nil {
 			return err
 		}
 

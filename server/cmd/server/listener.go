@@ -142,7 +142,7 @@ func (t *Teamserver) ListenerRestart(name string) error {
 		return err
 	}
 
-	t.ListenerSetStatus(name, status, true)
+	t.ListenerSetStatus(name, status)
 
 	return nil
 }
@@ -166,11 +166,7 @@ func (t *Teamserver) ListenerStop(name string) error {
 		return err
 	}
 
-	t.ListenerSetStatus(name, status, false)
-	t.UserBroadcast(false, t.EventCreate(EventListenerStop, map[string]string{
-		"name":   name,
-		"status": status,
-	}))
+	t.ListenerSetStatus(name, status)
 
 	return nil
 }
@@ -206,11 +202,7 @@ func (t *Teamserver) ListenerStart(name, protocol string, options map[string]any
 		if t.ListenerExists(name) {
 			status, _ = data["status"]
 
-			t.ListenerSetStatus(name, status, false)
-			t.UserBroadcast(false, t.EventCreate(EventListenerStart, map[string]string{
-				"name":   name,
-				"status": status,
-			}))
+			t.ListenerSetStatus(name, status)
 		} else {
 			host, _ = data["host"]
 			port, _ = data["port"]
@@ -305,15 +297,19 @@ func (t *Teamserver) ListenerConfig(name string) (map[string]any, error) {
 func (t *Teamserver) ListenerEdit(name string, config map[string]any) error {
 	var err error
 
-	err = errors.New("protocol not found")
+	if !t.ListenerExists(name) {
+		return errors.New("listener not found")
+	}
 
 	if err = t.plugins.ListenerEdit(name, config); err != nil {
 		return err
 	}
 
-	// TODO: edit the database entry as well
+	if err = t.DatabaseListenerSetConfig(name, config); err != nil {
+		return err
+	}
 
-	return err
+	return nil
 }
 
 func (t *Teamserver) ListenerList() []map[string]string {
@@ -337,17 +333,19 @@ func (t *Teamserver) ListenerLog(name string, format string, args ...any) {
 		"name": name,
 		"log":  fmt.Sprintf(format, args...),
 	}))
+
+	// TODO: insert the log into the database as well
 }
 
 // ListenerSetStatus
 // sets the listener status, updates the listener
 // database entry and broadcasts the status change
-func (t *Teamserver) ListenerSetStatus(name string, status string, event bool) {
+func (t *Teamserver) ListenerSetStatus(name string, status string) {
 	var (
-		err    error
-		config map[string]any
+		err error
 	)
 
+	//
 	for i := range t.listener {
 		if t.listener[i].Name == name {
 			t.listener[i].Status = status
@@ -356,26 +354,19 @@ func (t *Teamserver) ListenerSetStatus(name string, status string, event bool) {
 	}
 
 	// let's try to update the database listener status entry
-	config, err = t.ListenerConfig(name)
-	if err != nil {
-		logger.DebugError("ListenerConfig error on %v: %v", name, err)
-	} else {
-		err = t.DatabaseListenerUpdate(name, status, config)
-		if err != nil {
-			logger.DebugError("DatabaseListenerUpdate error on %v: %v", name, err)
-		}
+	if err = t.DatabaseListenerSetStatus(name, status); err != nil {
+		logger.DebugError("DatabaseListenerSetStatus error on %v: %v", name, err)
 	}
 
-	if event {
-		t.UserBroadcast(false, t.EventCreate(EventListenerStatus, map[string]any{
-			"name":   name,
-			"status": status,
-		}))
-	}
+	// broadcast status of the listener to all clients
+	t.UserBroadcast(false, t.EventCreate(EventListenerStatus, map[string]any{
+		"name":   name,
+		"status": status,
+	}))
 }
 
 func (t *Teamserver) ListenerConfigPath(name string) string {
-	return t.configPath + "/listeners/" + name
+	return t.ConfigPath() + "/listeners/" + name
 }
 
 func (t *Teamserver) DatabaseListenerInsert(name, protocol, status string, config map[string]any) error {
@@ -418,6 +409,31 @@ func (t *Teamserver) DatabaseListenerUpdate(name, status string, config map[stri
 	}
 
 	return err
+}
+
+func (t *Teamserver) DatabaseListenerSetConfig(name string, config map[string]any) error {
+	var (
+		serialize bytes.Buffer
+		err       error
+	)
+
+	// encode the config map into a serialized bytes
+	// buffer to be inserted into the database
+	if err = gob.NewEncoder(&serialize).Encode(config); err != nil {
+		return err
+	}
+
+	// insert the listener into the database
+	err = t.database.ListenerSetConfig(name, serialize.Bytes())
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func (t *Teamserver) DatabaseListenerSetStatus(name string, status string) error {
+	return t.database.ListenerSetStatus(name, status)
 }
 
 func (t *Teamserver) DatabaseListenerRemove(name string) error {

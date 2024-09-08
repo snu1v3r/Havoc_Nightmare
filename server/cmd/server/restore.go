@@ -88,7 +88,7 @@ func (t *Teamserver) RestoreListeners() error {
 			Path:     path,
 		})
 
-		t.ListenerSetStatus(listener.Name, status, false)
+		t.ListenerSetStatus(listener.Name, status)
 	}
 
 	return nil
