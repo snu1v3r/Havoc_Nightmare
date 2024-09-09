@@ -21,8 +21,14 @@ HcPageAgent::HcPageAgent(
     Splitter->setObjectName( QString::fromUtf8( "Splitter" ) );
     Splitter->setOrientation( Qt::Vertical );
 
-    AgentTable = new QTableWidget( Splitter );
+    StackedWidget = new QStackedWidget( Splitter );
+    StackedWidget->setContentsMargins( 0, 0, 0, 0 );
+
+    AgentTable = new QTableWidget( StackedWidget );
     AgentTable->setObjectName( "AgentTable" );
+
+    AgentGraph = new HcSessionGraph( StackedWidget );
+    AgentGraph->setObjectName( "AgentGraph" );
 
     TitleAgentID      = new QTableWidgetItem( "UUID" );
     TitleInternal     = new QTableWidgetItem( "Internal" );
@@ -109,17 +115,21 @@ HcPageAgent::HcPageAgent(
     AgentActionButton->setLayoutDirection( Qt::LeftToRight );
     AgentActionButton->setMaximumWidth( 90 );
 
-    Splitter->addWidget( AgentTable );
+    StackedWidget->addWidget( AgentTable );
+    StackedWidget->addWidget( AgentGraph );
+
+    Splitter->addWidget( StackedWidget );
     Splitter->addWidget( AgentTab );
     Splitter->handle( 1 )->setEnabled( SplitterMoveToggle ); /* disabled by default */
 
-    QObject::connect( AgentTable,        &QTableWidget::customContextMenuRequested, this, &HcPageAgent::handleAgentMenu );
-    QObject::connect( AgentTable,        &QTableWidget::doubleClicked, this, &HcPageAgent::handleAgentDoubleClick );
-    QObject::connect( AgentTab,          &QTabWidget::tabCloseRequested, this, &HcPageAgent::tabCloseRequested );
-    QObject::connect( ActionPayload,     &QAction::triggered, this, &HcPageAgent::actionPayloadBuilder );
-    QObject::connect( ActionShowHidden,  &QAction::triggered, this, &HcPageAgent::actionShowHidden );
-    QObject::connect( AgentActionButton, &QToolButton::triggered, this, &HcPageAgent::actionTriggered );
-    QObject::connect( AgentTable,        &QTableWidget::itemChanged, this, &HcPageAgent::itemChanged );
+    connect( AgentTable, &QTableWidget::customContextMenuRequested, this, &HcPageAgent::handleAgentMenu );
+    connect( AgentTable, &QTableWidget::doubleClicked, this, &HcPageAgent::handleAgentDoubleClick );
+    connect( AgentTab, &QTabWidget::tabCloseRequested, this, &HcPageAgent::tabCloseRequested );
+    connect( ActionPayload, &QAction::triggered, this, &HcPageAgent::actionPayloadBuilder );
+    connect( ActionShowHidden, &QAction::triggered, this, &HcPageAgent::actionShowHidden );
+    connect( AgentActionButton, &QToolButton::triggered, this, &HcPageAgent::actionTriggered );
+    connect( AgentTable, &QTableWidget::itemChanged, this, &HcPageAgent::itemChanged );
+    connect( ComboAgentView, &QComboBox::currentIndexChanged, this, &HcPageAgent::viewChanged );
 
     gridLayout->addWidget( ComboAgentView,         0, 0, 1, 1 );
     gridLayout->addWidget( Splitter,               1, 0, 1, 7 );
@@ -144,7 +154,7 @@ auto HcPageAgent::retranslateUi() -> void {
     AgentDisplayerSessions->setText( "Sessions: 0" );
     AgentDisplayerTargets->setText( "Targets: 0" );
     AgentDisplayerPivots->setText( "Pivots: 0" );
-    ComboAgentView->addItems( QStringList() << "Sessions" << "Sessions Graph" << "Targets" );
+    ComboAgentView->addItems( QStringList() << "Sessions" << "Sessions Graph" );
 }
 
 auto HcPageAgent::addTab(
@@ -620,6 +630,12 @@ auto HcPageAgent::actionTriggered(
             break;
         }
     }
+}
+
+auto HcPageAgent::viewChanged(
+    int index
+) -> void {
+    StackedWidget->setCurrentIndex( index );
 }
 
 auto HcPageAgent::removeAgent(

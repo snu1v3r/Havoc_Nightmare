@@ -1,7 +1,6 @@
 <!DOCTYPE RCC><RCC version="1.0">
 
     <qresource prefix="/icons">
-
         <file alias="havoc-white">../data/icons/havoc.png</file>
 
         <file alias="tab-close-button">../data/icons/close-icon.png</file>
@@ -59,7 +58,31 @@
 
         <file alias="16px-remove">../data/icons/16px-trash-bin.png</file>
         <file alias="32px-flash">../data/icons/32px-flash.png</file>
+    </qresource>
 
+    <qresource prefix="/graph">
+        <file alias="linux">../data/icons/graph/linux-icon.png</file>
+        <file alias="linux-high">../data/icons/graph/linux-icon-high.png</file>
+
+        <file alias="macos">../data/icons/graph/macos-icon.png</file>
+        <file alias="macos-high">../data/icons/graph/macos-icon-high.png</file>
+
+        <file alias="unknown">../data/icons/graph/unknown-icon.png</file>
+        <file alias="unknown-high">../data/icons/graph/unknown-icon-high.png</file>
+
+        <file alias="win7-vista">../data/icons/graph/win7-vista-icon.png</file>
+        <file alias="win7-vista-high">../data/icons/graph/win7-vista-icon-high.png</file>
+
+        <file alias="win10-8">../data/icons/graph/win10-8-icon.png</file>
+        <file alias="win10-8-high">../data/icons/graph/win10-8-icon-high.png</file>
+
+        <file alias="win11">../data/icons/graph/win11-icon.png</file>
+        <file alias="win11-high">../data/icons/graph/win11-icon-high.png</file>
+
+        <file alias="winxp">../data/icons/graph/winxp-icon.png</file>
+        <file alias="winxp-high">../data/icons/graph/winxp-icon-high.png</file>
+
+        <file alias="server">../data/icons/graph/firewall.png</file>
     </qresource>
 
     <qresource prefix="/style">

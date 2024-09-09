@@ -202,13 +202,14 @@ auto HavocClient::Main(
 
     Profile.Token = data[ "token" ].get<std::string>();
 
+    Theme.setStyleSheet( StyleSheet() );
+
     //
     // create main window
     //
     Gui = new HcMainWindow;
     Gui->renderWindow();
     Gui->setStyleSheet( StyleSheet() );
-    Theme.setStyleSheet( StyleSheet() );
 
     //
     // setup Python thread
@@ -369,9 +370,9 @@ auto HavocClient::SetupThreads() -> void {
     Events.Worker = new HcEventWorker;
     Events.Worker->moveToThread( Events.Thread );
 
-    QObject::connect( Events.Thread, &QThread::started, Events.Worker, &HcEventWorker::run );
-    QObject::connect( Events.Worker, &HcEventWorker::availableEvent, this, &HavocClient::eventHandle );
-    QObject::connect( Events.Worker, &HcEventWorker::socketClosed, this, &HavocClient::eventClosed );
+    connect( Events.Thread, &QThread::started, Events.Worker, &HcEventWorker::run );
+    connect( Events.Worker, &HcEventWorker::availableEvent, this, &HavocClient::eventHandle );
+    connect( Events.Worker, &HcEventWorker::socketClosed, this, &HavocClient::eventClosed );
 
     //
     // fire up the even thread that is going to
@@ -389,7 +390,7 @@ auto HavocClient::SetupThreads() -> void {
     Heartbeat.Worker = new HcHeartbeatWorker;
     Heartbeat.Worker->moveToThread( Heartbeat.Thread );
 
-    QObject::connect( Heartbeat.Thread, &QThread::started, Heartbeat.Worker, &HcHeartbeatWorker::run );
+    connect( Heartbeat.Thread, &QThread::started, Heartbeat.Worker, &HcHeartbeatWorker::run );
 
     //
     // fire up the even thread that is going to
@@ -404,20 +405,20 @@ auto HavocClient::SetupThreads() -> void {
     MetaWorker.Worker = new HcMetaWorker;
     MetaWorker.Worker->moveToThread( MetaWorker.Thread );
 
-    QObject::connect( MetaWorker.Thread, &QThread::started, MetaWorker.Worker, &HcMetaWorker::run );
+    connect( MetaWorker.Thread, &QThread::started, MetaWorker.Worker, &HcMetaWorker::run );
 
     //
     // connect methods to add listeners, agents, etc. to the user interface (ui)
     //
-    QObject::connect( MetaWorker.Worker, &HcMetaWorker::AddListener,     Gui, &HcMainWindow::AddListener  );
-    QObject::connect( MetaWorker.Worker, &HcMetaWorker::AddAgent,        Gui, &HcMainWindow::AddAgent     );
-    QObject::connect( MetaWorker.Worker, &HcMetaWorker::AddAgentConsole, Gui, &HcMainWindow::AgentConsole );
+    connect( MetaWorker.Worker, &HcMetaWorker::AddListener,     Gui, &HcMainWindow::AddListener  );
+    connect( MetaWorker.Worker, &HcMetaWorker::AddAgent,        Gui, &HcMainWindow::AddAgent     );
+    connect( MetaWorker.Worker, &HcMetaWorker::AddAgentConsole, Gui, &HcMainWindow::AgentConsole );
 
     //
     // only start the event worker once the meta worker finished
     // pulling all the listeners, agents, etc. from the server
     //
-    QObject::connect( MetaWorker.Worker, &HcMetaWorker::eventWorkerRun, this, [&](){
+    connect( MetaWorker.Worker, &HcMetaWorker::eventWorkerRun, this, [&](){
         Events.Thread->start();
     } );
 
@@ -472,14 +473,14 @@ auto HavocClient::RemoveListener(
 ) -> void {
     spdlog::debug( "removing listener: {}", name );
 
-    auto object = ListenerObject( name );
+    const auto object = ListenerObject( name );
 
     //
     // remove listener from listener list
     //
     for ( auto iter = listeners.begin(); iter != listeners.end(); ++iter ) {
         if ( object.has_value() ) {
-            auto data = object.value();
+            const auto& data = object.value();
             if ( data.contains( "name" ) && data[ "name" ].is_string() ) {
                 if ( data[ "name" ].get<std::string>() == name ) {
                     listeners.erase( iter );
@@ -520,7 +521,7 @@ auto HavocClient::Listeners() -> std::vector<std::string>
     return names;
 }
 
-auto HavocClient::Agents() -> std::vector<HcAgent *>
+auto HavocClient::Agents() const -> std::vector<HcAgent *>
 {
     return Gui->PageAgent->agents;
 }
@@ -551,9 +552,9 @@ auto HavocClient::AddAgentObject(
 auto HavocClient::AgentObject(
     const std::string& type
 ) -> std::optional<py11::object> {
-    for ( auto object : agents ) {
-        if ( object.name == type ) {
-            return object.object;
+    for ( auto [name, object] : agents ) {
+        if ( name == type ) {
+            return object;
         }
     }
 
@@ -601,9 +602,9 @@ auto HavocClient::CallbackObject(
     //
     // iterate over registered callbacks
     //
-    for ( auto object : callbacks ) {
-        if ( object.name == uuid ) {
-            return object.object;
+    for ( auto [name, object] : callbacks ) {
+        if ( name == uuid ) {
+            return object;
         }
     }
 
@@ -676,7 +677,7 @@ auto HavocClient::Actions(
 
 auto HavocClient::ScriptLoad(
     const std::string& path
-) -> void {
+) const -> void {
     Gui->PageScripts->LoadScript( path );
 }
 

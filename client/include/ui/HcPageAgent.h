@@ -1,6 +1,7 @@
 #ifndef HAVOCCLIENT_HCPAGEAGENT_H
 #define HAVOCCLIENT_HCPAGEAGENT_H
 
+#include <QStackedWidget>
 #include <QtCore/QVariant>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QComboBox>
@@ -15,6 +16,7 @@
 #include <QtWidgets/QPushButton>
 
 #include <ui/HcConsole.h>
+#include <ui/HcSessionGraph.h>
 #include <core/HcAgent.h>
 
 QT_BEGIN_NAMESPACE
@@ -39,7 +41,9 @@ public:
     QGridLayout*      gridLayout             = nullptr;
     QComboBox*        ComboAgentView         = nullptr;
     QSplitter*        Splitter               = nullptr;
+    QStackedWidget*   StackedWidget          = nullptr;
     QTableWidget*     AgentTable             = nullptr;
+    HcSessionGraph*   AgentGraph             = nullptr;
     QTabWidget*       AgentTab               = nullptr;
     QLabel*           AgentDisplayerElevated = nullptr;
     QLabel*           AgentDisplayerSessions = nullptr;
@@ -50,6 +54,7 @@ public:
     QAction*          ActionPayload          = nullptr;
     QAction*          ActionShowHidden       = nullptr;
     QSpacerItem*      horizontalSpacer       = nullptr;
+
     QTableWidgetItem* TitleAgentID           = nullptr;
     QTableWidgetItem* TitleInternal          = nullptr;
     QTableWidgetItem* TitleUsername          = nullptr;
@@ -86,6 +91,17 @@ public:
         const std::string& uuid
     ) -> void;
 
+    auto Agent(
+        const std::string& uuid
+    ) -> std::optional<HcAgent*>;
+
+    auto AgentConsole(
+        const std::string& uuid,
+        const std::string& format,
+        const std::string& output = ""
+    ) -> void;
+
+private Q_SLOTS:
     auto handleAgentMenu(
         const QPoint& pos
     ) -> void;
@@ -98,21 +114,10 @@ public:
         int index
     ) const -> void;
 
-    auto Agent(
-        const std::string& uuid
-    ) -> std::optional<HcAgent*>;
-
-    auto AgentConsole(
-        const std::string& uuid,
-        const std::string& format,
-        const std::string& output = ""
-    ) -> void;
-
     auto itemChanged(
         QTableWidgetItem *item
     ) -> void;
 
-private:
     auto actionShowHidden(
         bool checked
     ) -> void;
@@ -123,6 +128,10 @@ private:
 
     auto actionTriggered(
         QAction* triggered
+    ) -> void;
+
+    auto viewChanged(
+        int index
     ) -> void;
 };
 

@@ -90,6 +90,7 @@ set( HAVOC_INCLUDE
         include/ui/HcComboBox.h
         include/ui/HcTheme.h
         include/ui/HcStoreWidget.h
+        include/ui/HcSessionGraph.h
 )
 
 ##
@@ -122,6 +123,7 @@ set( HAVOC_SRC
         src/ui/HcComboBox.cc
         src/ui/HcTheme.cc
         src/ui/HcStoreWidget.cc
+        src/ui/HcSessionGraph.cc
 
         src/api/HcEngine.cc
         src/api/HcCore.cc

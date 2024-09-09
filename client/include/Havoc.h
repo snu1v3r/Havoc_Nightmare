@@ -14,14 +14,15 @@ class HcMainWindow;
 
 #include <ui/HcPageAgent.h>
 #include <ui/HcPageListener.h>
-#include <ui/HcDialogBuilder.h>
 #include <ui/HcPageScript.h>
 
+#include <ui/HcDialogBuilder.h>
 #include <ui/HcListenerDialog.h>
 #include <ui/HcMainWindow.h>
 #include <ui/HcConnectDialog.h>
 #include <ui/HcLineEdit.h>
 #include <ui/HcTheme.h>
+#include <ui/HcSessionGraph.h>
 
 #include <api/Engine.h>
 
@@ -205,7 +206,7 @@ public:
         const std::string& uuid
     ) const -> std::optional<HcAgent*>;
 
-    auto Agents() -> std::vector<HcAgent*>;
+    auto Agents() const -> std::vector<HcAgent*>;
 
     auto AddAgentObject(
         const std::string&  type,
@@ -245,7 +246,7 @@ public:
 
     auto ScriptLoad(
         const std::string& path
-    ) -> void;
+    ) const -> void;
 
 Q_SIGNALS:
     /* signals */

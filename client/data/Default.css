@@ -35,8 +35,7 @@ QScrollBar::sub-line {
 }
 
 QStackedWidget {
-    background-color: #313342;
-    color: #f8f8f2;
+    background: #313342;
 }
 
 QStackedWidget[protocol="true"] {
