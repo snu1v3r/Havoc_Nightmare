@@ -172,7 +172,7 @@ HcPagePlugins::HcPagePlugins()
                 plugin = dialog.selectedUrls().value( 0 ).toLocalFile();
                 if ( ! plugin.toString().isNull() ) {
                     try {
-                        py11::gil_scoped_acquire gil;
+                        HcPythonAcquire();
                         LoadCallback.value()( py11::str( plugin.toString().toStdString() ) );
                     } catch ( py11::error_already_set &eas ) {
                         exception = eas.what();
@@ -225,7 +225,7 @@ auto HcPagePlugins::LoadScript(
 
     if ( LoadCallback.has_value() ) {
         try {
-            auto gil = py11::gil_scoped_acquire();
+            HcPythonAcquire();
 
             LoadCallback.value()( path );
 

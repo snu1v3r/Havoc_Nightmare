@@ -239,8 +239,6 @@ auto HavocClient::Main(
     // server and dispatch all the incoming events
     //
     SetupThreads();
-
-    QApplication::exec();
     return;
 
 ERROR_SERVER_RESPONSE:

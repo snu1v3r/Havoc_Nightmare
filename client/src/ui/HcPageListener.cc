@@ -163,7 +163,7 @@ auto HcPageListener::buttonAddListener() -> void {
     Dialog->start();
 
     if ( Dialog->getCloseState() != Closed ) {
-        py11::gil_scoped_acquire gil;
+        HcPythonAcquire();
         delete Dialog;
     }
 }
@@ -507,7 +507,7 @@ auto HcPageListener::handleListenerContextMenu(
                          listener_action->listener.type == type
                     ) {
                         try {
-                            py11::gil_scoped_acquire gil;
+                            HcPythonAcquire();
 
                             listener_action->callback( name.toStdString() );
                         } catch ( py11::error_already_set& e ) {

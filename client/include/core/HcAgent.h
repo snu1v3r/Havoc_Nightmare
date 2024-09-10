@@ -1,13 +1,15 @@
 #ifndef HAVOCCLIENT_HCAGENT_H
 #define HAVOCCLIENT_HCAGENT_H
 
+class HcSessionGraphItem;
 class HcAgentConsole;
 struct HcAgent;
 
 #include <Common.h>
 #include <ui/HcPageAgent.h>
+#include <ui/HcSessionGraph.h>
 
-class HcAgentEmit : public QWidget {
+class HcAgentEmit : public QObject {
     Q_OBJECT
 
 signals:
@@ -44,6 +46,7 @@ struct HcAgent {
     std::optional<py11::object> interface;
     HcAgentConsole*             console;
     QString                     last;
+    HcSessionGraphItem*         node;
 
     struct {
         HcAgentTableItem* Uuid;
@@ -60,9 +63,6 @@ struct HcAgent {
         HcAgentTableItem* Last;
     } ui;
 
-    //
-    // signals
-    //
     HcAgentEmit emitter = {};
 
     auto remove() -> void;

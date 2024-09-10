@@ -10,5 +10,6 @@ auto main(
 
     Havoc = new HavocClient;
     Havoc->Main( argc, argv );
-}
 
+    QApplication::exec();
+}

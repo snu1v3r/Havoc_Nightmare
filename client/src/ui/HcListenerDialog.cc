@@ -132,7 +132,7 @@ auto HcListenerDialog::save() -> void {
 
     auto protocol = getCurrentProtocol();
     try {
-        py11::gil_scoped_acquire gil;
+        HcPythonAcquire();
 
         /* sanity check input */
         if ( ! protocol.instance.attr( "sanity_check" )().cast<bool>() ) {
@@ -215,7 +215,7 @@ auto HcListenerDialog::AddProtocol(
     const std::string&  name,
     const py11::object& object
 ) -> void {
-    py11::gil_scoped_acquire gil;
+    HcPythonAcquire();
 
     auto protocol = Protocol {
         .name   = name,
@@ -252,7 +252,7 @@ auto HcListenerDialog::setEditingListener(
     edited_config = config;
 
     try {
-        py11::gil_scoped_acquire gil;
+        HcPythonAcquire();
 
         getCurrentProtocol().instance.attr( "edit" )( config );
     } catch ( py11::error_already_set& e ) {

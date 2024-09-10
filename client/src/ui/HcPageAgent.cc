@@ -329,10 +329,8 @@ auto HcPageAgent::addAgent(
     //
     // connect signals and slots
     //
-    QObject::connect( & agent->emitter, & HcAgentEmit::ConsoleWrite, this, []( const QString& uuid, const QString& text ) {
-        auto agent = Havoc->Agent( uuid.toStdString() );
-
-        if ( agent.has_value() ) {
+    connect( & agent->emitter, & HcAgentEmit::ConsoleWrite, this, []( const QString& uuid, const QString& text ) {
+        if ( const auto agent = Havoc->Agent( uuid.toStdString() ); agent.has_value() ) {
             agent.value()->console->appendConsole( HcConsole::formatString( text.toStdString() ).c_str() );
         }
     } );
@@ -360,7 +358,7 @@ auto HcPageAgent::addAgent(
     agent->interface = std::nullopt;
     if ( auto interface = Havoc->AgentObject( agent->type ) ) {
         if ( interface.has_value() ) {
-            py11::gil_scoped_acquire gil;
+            HcPythonAcquire();
 
             try {
                 agent->interface = interface.value()( agent->uuid, agent->type, metadata[ "meta" ] );
@@ -369,6 +367,8 @@ auto HcPageAgent::addAgent(
             }
         }
     }
+
+    agent->node = AgentGraph->addAgent( agent );
 
     AgentDisplayerTargets->setText( QString( "Targets: %1" ).arg( agents.size() ) );   /* TODO: all targets (only show one host)        */
     AgentDisplayerSessions->setText( QString( "Sessions: %1" ).arg( agents.size() ) ); /* TODO: only set current alive beacons/sessions */
@@ -463,7 +463,7 @@ auto HcPageAgent::handleAgentMenu(
 
                         if ( agent.has_value() && agent.value()->interface.has_value() ) {
                             try {
-                                py11::gil_scoped_acquire gil;
+                                HcPythonAcquire();
 
                                 agent_action->callback( agent.value()->interface.value() );
                             } catch ( py11::error_already_set& e ) {
@@ -571,8 +571,9 @@ auto HcPageAgent::actionShowHidden(
 auto HcPageAgent::actionPayloadBuilder(
     bool checked
 ) -> void {
-    auto gil    = py11::gil_scoped_acquire();
     auto dialog = HcDialogBuilder();
+
+    HcPythonAcquire();
 
     QObject::connect( Havoc->Gui, &HcMainWindow::signalBuildLog, &dialog, &HcDialogBuilder::EventBuildLog );
 
@@ -620,7 +621,7 @@ auto HcPageAgent::actionTriggered(
         if ( action->name == triggered->text().toStdString() ) {
 
             try {
-                py11::gil_scoped_acquire gil;
+                HcPythonAcquire();
 
                 action->callback();
             } catch ( py11::error_already_set& e ) {
@@ -672,7 +673,7 @@ auto HcPageAgent::removeAgent(
     }
 
     if ( agent ) {
-        auto gil = py11::gil_scoped_acquire();
+        HcPythonAcquire();
 
         AgentTab->removeTab( AgentTab->indexOf( agent->console ) );
 
@@ -703,7 +704,7 @@ auto HcAgentConsole::inputEnter(
     // invoke the command in a separate thread
     //
     auto future = QtConcurrent::run( []( HcAgent* agent, const std::string& input ) {
-        py11::gil_scoped_acquire gil;
+        HcPythonAcquire();
 
         if ( agent->interface.has_value() ) {
             try {

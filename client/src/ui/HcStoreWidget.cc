@@ -216,7 +216,7 @@ HcStoreWidget::HcStoreWidget( QWidget* parent ) : QWidget( parent ) {
 
             if ( script.exists() ) {
                 try {
-                    py11::gil_scoped_acquire gil;
+                    HcPythonAcquire();
                     Havoc->Gui->PageScripts->LoadScript( script.fileName().toStdString() );
                 } catch ( py11::error_already_set &eas ) {
                     Helper::MessageBox( QMessageBox::Critical, "plugin installation", std::format( "failed while loading {} plugin scripts:\n{}", plugin->name, eas.what() ) );

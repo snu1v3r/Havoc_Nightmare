@@ -8,6 +8,8 @@
 #include <api/HcAgent.h>
 #include <api/HcListener.h>
 
+#define HcPythonAcquire() py11::gil_scoped_acquire gil
+
 class HcPyEngine {
     PyThreadState* state = { 0 };
 

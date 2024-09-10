@@ -127,7 +127,7 @@ auto HcDialogBuilder::AddBuilder(
     builder.widget->setStyleSheet( "#" + objname + "{ background: " + Havoc->Theme.getBackground().name() + "}" );
 
     try {
-        py11::gil_scoped_acquire gil;
+        HcPythonAcquire();
 
         builder.instance = object( U_PTR( builder.widget ), U_PTR( this ), name );
         builder.instance.attr( "_hc_main" )();
@@ -198,7 +198,7 @@ auto HcDialogBuilder::PressedGenerate() -> void
         // and interacting with the builder instance
         //
         {
-            auto gil = py11::gil_scoped_acquire();
+            HcPythonAcquire();
 
             try {
                 if ( ! builder.attr( "sanity_check" )().cast<bool>() ) {
@@ -344,7 +344,7 @@ auto HcDialogBuilder::PressedGenerate() -> void
                 // python builder instance
                 //
                 {
-                    auto gil = py11::gil_scoped_acquire();
+                    HcPythonAcquire();
 
                     try {
                         //

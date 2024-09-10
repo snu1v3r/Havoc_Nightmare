@@ -45,6 +45,10 @@ QStackedWidget[protocol="true"] {
     margin-top: 10px;
 }
 
+QGraphicsView {
+    background: #282A36;
+}
+
 QWidget[HcWidgetDark="true"] {
     background: #282A36;
 }

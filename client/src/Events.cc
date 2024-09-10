@@ -240,7 +240,7 @@ auto HavocClient::eventDispatch(
             // acquire python gil to interact with the
             // python function and call the callback
             //
-            auto gil = py11::gil_scoped_acquire();
+            HcPythonAcquire();
 
             //
             // get the data to pass to the callback
