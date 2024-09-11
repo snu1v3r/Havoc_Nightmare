@@ -1,4 +1,5 @@
 #include <Havoc.h>
+#include <QGraphicsItemAnimation>
 
 HavocClient* Havoc = nullptr;
 

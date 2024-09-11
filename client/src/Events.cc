@@ -382,12 +382,16 @@ auto HavocClient::eventDispatch(
         //
         // set the last callback of the agent
         //
-        if ( auto agent = Agent( uuid ) ) {
-            if ( agent.has_value() ) {
-                agent.value()->last = QString( time.c_str() );
-            } else {
-                spdlog::error( "invalid agent heartbeat: \"uuid\" agent does not have any value" );
-            }
+        if ( auto _value = Agent( uuid ); _value.has_value() ) {
+            auto agent = _value.value();
+
+            agent->last = QString( time.c_str() );
+
+
+            //
+            // update the pulsation inside the graph
+            //
+            agent->node->itemEdge()->startPulsation();
         } else {
             spdlog::error( "invalid agent heartbeat: \"uuid\" agent not found" );
         }

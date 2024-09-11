@@ -4,9 +4,10 @@
 HcSessionGraph::HcSessionGraph(
     QWidget* parent
 ) : QGraphicsView( parent ) {
-    scene = new QGraphicsScene( this );
+    scene = new HcSessionGraphScene( 10, this );
     scene->setItemIndexMethod( QGraphicsScene::BspTreeIndex );
 
+    setDragMode( RubberBandDrag );
     setScene( scene );
     setCacheMode( CacheBackground );
     setViewportUpdateMode( BoundingRectViewportUpdate );
@@ -14,18 +15,20 @@ HcSessionGraph::HcSessionGraph(
     setRenderHint( QPainter::Antialiasing );
     scaleView( 1 );
 
-    layout = new QVBoxLayout( this );
-    button = new HcSessionGraphButton( this );
+    box_layout = new QVBoxLayout( this );
+    _settings  = new HcSessionGraphSetting( this );
 
-    layout->setAlignment( Qt::AlignLeft | Qt::AlignTop );
-    layout->addWidget( button );
+    box_layout->setAlignment( Qt::AlignLeft | Qt::AlignTop );
+    box_layout->addWidget( _settings );
 
     server = new HcSessionGraphItem;
 
     scene->addItem( server );
 
     server->setGraph( this );
-    server->setPos( 100,50 );
+    server->setPos( 100, 50 );
+
+    _nodes.push_back( server );
 }
 
 HcSessionGraph::~HcSessionGraph() {
@@ -56,11 +59,56 @@ auto HcSessionGraph::addAgent(
     item->setGraph( this );
     item->setItemEdge( new HcSessionGraphEdge( server, item, Havoc->Theme.getGreen() ) );
 
+    //
+    // TODO: check if its an pivot agent or direct first
+    //
+    item->addParent( server );
+
+    server->addPivot( item );
+
     scene->addItem( item );
     scene->addItem( item->itemEdge() );
     _nodes.push_back( item );
 
+    HcGraphLayoutTree::draw( server );
+
     return item;
+}
+
+auto HcSessionGraph::removeAgent(
+    const HcAgent* agent
+) -> void {
+    //
+    // remove the items from the graph
+    //
+    scene->removeItem( agent->node );
+    scene->removeItem( agent->node->itemEdge() );
+
+    //
+    // remove itself from the parent node
+    //
+    agent->node->parent()->removePivot( agent->node );
+
+    //
+    // remove the node from the lists
+    //
+    for ( int i = 0; i < _nodes.size(); i++ ) {
+        if ( _nodes[ i ] == agent->node ) {
+            _nodes.erase( _nodes.begin() + i );
+            break;
+        }
+    }
+
+    //
+    // re-draw the tree layout
+    //
+    HcGraphLayoutTree::draw( server );
+}
+
+auto HcSessionGraph::isServer(
+    const HcSessionGraphItem* item
+) const -> bool {
+    return item == server;
 }
 
 auto HcSessionGraph::itemMoved() -> void
@@ -73,6 +121,11 @@ auto HcSessionGraph::itemMoved() -> void
 auto HcSessionGraph::nodes() -> std::vector<HcSessionGraphItem*>
 {
     return _nodes;
+}
+
+auto HcSessionGraph::settings() -> HcSessionGraphSetting *
+{
+    return _settings;
 }
 
 auto HcSessionGraph::keyPressEvent(
@@ -145,12 +198,222 @@ void HcSessionGraph::zoomOut() {
 }
 
 //
+// HcGraphLayoutTree
+//
+
+double HcGraphLayoutTree::X_SEP = 220; // Horizontal separation between levels of the tree
+double HcGraphLayoutTree::Y_SEP = 120; // Vertical separation between sibling nodes
+
+auto HcGraphLayoutTree::initNode(
+    HcSessionGraphItem* item
+) -> void {
+    item->Modifier = 0;
+    item->Thread   = nullptr;
+    item->Ancestor = item;
+
+    for ( const auto w : item->pivots() ) {
+        initNode( w );
+    }
+}
+
+auto HcGraphLayoutTree::draw(
+    HcSessionGraphItem* item
+) -> void {
+    initNode( item );
+    firstWalk( item );
+    secondWalk( item , 100, 0 );
+}
+
+auto HcGraphLayoutTree::firstWalk(
+    HcSessionGraphItem* item
+) -> void {
+    if ( item->pivots().empty() ) {
+        if ( item->parent() && item != item->parent()->pivots()[ 0 ] ) {
+            const auto children = item->parent()->pivots();
+            const auto sibling  = *std::prev( std::find( children.cbegin(), children.cend(), item ) );
+
+            item->Prelim = sibling->Prelim + Y_SEP;
+        } else {
+            item->Prelim = 0;
+        }
+    } else {
+        auto defaultAncestor = item->pivots()[ 0 ];
+
+        for ( const auto w : item->pivots() ) {
+            firstWalk( w );
+            apportion( w, defaultAncestor );
+        }
+
+        executeShifts( item );
+
+        const double midpoint = ( item->pivots()[ 0 ]->Prelim + item->pivots().back()->Prelim ) / 2;
+
+        if ( item->parent() && item != item->parent()->pivots()[ 0 ] ) {
+            const auto children = item->parent()->pivots();
+            const auto sibling  = *std::prev( std::find( children.cbegin(), children.cend(), item ) );
+
+            item->Prelim   = sibling->Prelim + Y_SEP;
+            item->Modifier = item->Prelim - midpoint;
+        } else {
+            item->Prelim = midpoint;
+        }
+    }
+}
+
+auto HcGraphLayoutTree::apportion(
+    HcSessionGraphItem*  item,
+    HcSessionGraphItem*& defaultAncestor
+) -> void {
+    if ( item != item->parent()->pivots()[ 0 ] ) {
+        const auto children = item->parent()->pivots();
+        const auto sibling  = *std::prev( std::find( children.cbegin(), children.cend(), item ) );
+
+        auto vip = item;
+        auto vop = item;
+        auto vim = sibling;
+        auto vom = vip->parent()->pivots()[ 0 ];
+
+        double sip = vip->Modifier;
+        double sop = vop->Modifier;
+        double sim = vim->Modifier;
+        double som = vom->Modifier;
+
+        while ( nextRight( vim ) && nextLeft( vip ) ) {
+            vim = nextRight( vim );
+            vip = nextLeft( vip );
+            vom = nextLeft( vom );
+            vop = nextRight( vop );
+
+            vop->Ancestor = item;
+
+            double shift = ( vim->Prelim + sim ) - ( vip->Prelim + sip ) + Y_SEP;
+
+            if ( shift > 0 ) {
+                moveSubtree( ancestor( vim, item, defaultAncestor ), item, shift );
+                sip += shift;
+                sop += shift;
+            }
+
+            sim += vim->Modifier;
+            sip += vip->Modifier;
+            som += vom->Modifier;
+            sop += vop->Modifier;
+        }
+
+        if ( nextRight( vim ) && ! nextRight( vop ) ) {
+            vop->Thread    = nextRight( vim );
+            vop->Modifier += sim - sop;
+        }
+
+        if ( nextLeft( vip ) && ! nextLeft( vom ) ) {
+            vom->Thread     = nextLeft( vip );
+            vom->Modifier  += sip - som;
+            defaultAncestor = item;
+        }
+    }
+}
+
+auto HcGraphLayoutTree::moveSubtree(
+    HcSessionGraphItem* wm,
+    HcSessionGraphItem* wp,
+    double              shift
+) -> void {
+    auto children = wm->parent()->pivots();
+    auto wmIndex  = std::distance( children.cbegin(), std::find( children.cbegin(), children.cend(), wm ) );
+    auto wpIndex  = std::distance( children.cbegin(), std::find( children.cbegin(), children.cend(), wp ) );
+    int  subtrees = wpIndex - wmIndex;
+
+    if ( subtrees != 0 ) {
+        wp->Change -= shift / subtrees;
+        wp->Shift += shift;
+        wm->Change += shift / subtrees;
+        wp->Prelim += shift;
+        wp->Modifier += shift;
+    }
+}
+
+auto HcGraphLayoutTree::nextLeft(
+    HcSessionGraphItem* v
+) -> HcSessionGraphItem* {
+    return ( ! v->pivots().empty() ) ? v->pivots()[ 0 ] : v->Thread;
+}
+
+auto HcGraphLayoutTree::nextRight(
+    HcSessionGraphItem* v
+) -> HcSessionGraphItem* {
+    return ( ! v->pivots().empty() ) ? v->pivots().back() : v->Thread;
+}
+
+auto HcGraphLayoutTree::ancestor(
+    HcSessionGraphItem*  vim,
+    HcSessionGraphItem*  v,
+    HcSessionGraphItem*& defaultAncestor
+) -> HcSessionGraphItem * {
+    return ( vim->Ancestor->parent() == v->parent() ) ? vim->Ancestor : defaultAncestor;
+}
+
+auto HcGraphLayoutTree::executeShifts(
+    HcSessionGraphItem* item
+) -> void {
+    double shift = 0;
+    double change = 0;
+
+    for ( int i = item->pivots().size() - 1; i >= 0; i-- ) {
+        auto w = item->pivots()[i];
+        w->Prelim += shift;
+        w->Modifier += shift;
+        change += w->Change;
+        shift += w->Shift + change;
+    }
+}
+
+auto HcGraphLayoutTree::secondWalk(
+    HcSessionGraphItem* item,
+    double              m,
+    double              depth
+) -> void {
+    item->setPos( ( depth * X_SEP ) + 100, item->Prelim + m );
+
+    for ( const auto w : item->pivots() ) {
+        secondWalk( w, m + item->Modifier, depth + 1 );
+    }
+}
+
+//
+// HcSessionGraphScene
+//
+
+HcSessionGraphScene::HcSessionGraphScene(
+    int      grid_size,
+    QObject* parent
+) : QGraphicsScene( parent ), grid_size( grid_size ) {}
+
+HcSessionGraphScene::~HcSessionGraphScene() = default;
+
+auto HcSessionGraphScene::mouseMoveEvent(
+    QGraphicsSceneMouseEvent* event
+) -> void {
+    QGraphicsScene::mouseMoveEvent( event );
+
+    if ( const auto item = mouseGrabberItem() ) {
+        const auto pos = item->pos();
+
+        const auto snappedX = round( pos.x() / grid_size ) * grid_size;
+        const auto snappedY = round( pos.y() / grid_size ) * grid_size;
+
+        item->setPos( snappedX, snappedY );
+    }
+}
+
+//
 // HcSessionGraphItem
 //
 
 HcSessionGraphItem::HcSessionGraphItem() {
     setFlag( ItemIsMovable );
     setFlag( ItemSendsGeometryChanges );
+    setFlag( ItemIsSelectable );
+
     setCacheMode( DeviceCoordinateCache );
     setZValue( -1 );
 
@@ -186,13 +449,28 @@ auto HcSessionGraphItem::agent(
 auto HcSessionGraphItem::addPivot(
     HcSessionGraphItem *agent
 ) -> void {
-    children.push_back( agent );
+    _children.push_back( agent );
+}
+
+auto HcSessionGraphItem::removePivot(
+    const HcSessionGraphItem* agent
+) -> void {
+    //
+    // remove the agent entry from
+    // the children/pivots list
+    //
+    for ( int i = 0; i < _children.size(); i++ ) {
+        if ( _children[ i ] == agent ) {
+            _children.erase( _children.begin() + i );
+            break;
+        }
+    }
 }
 
 auto HcSessionGraphItem::pivots(
     void
 ) const -> std::vector<HcSessionGraphItem*> {
-    return children;
+    return _children;
 }
 
 auto HcSessionGraphItem::addParent(
@@ -203,7 +481,7 @@ auto HcSessionGraphItem::addParent(
 
 auto HcSessionGraphItem::parent(
     void
-) const -> std::optional<HcSessionGraphItem*> {
+) const -> HcSessionGraphItem* {
     return _parent;
 }
 
@@ -244,15 +522,15 @@ auto HcSessionGraphItem::paint(
     const QStyleOptionGraphicsItem* option,
     QWidget* widget
 ) -> void {
-    if ( agent() == nullptr ) {
+    if ( graph()->isServer( this ) ) {
         //
         // check if the current graph item is the root item
         // in this scene (aka havoc server)
         //
         painter->drawImage( rect, QImage( ":/graph/server" ) );
-    } else if ( parent().has_value() ) {
+    } else if ( ! graph()->isServer( parent() ) ) {
         //
-        // check if a parent has been specified. if yes then
+        // check if the parent is not the server. if no then
         // it means that the current item is a pivot session
         //
         spdlog::debug( "[HcSessionGraphItem::paint] pivot" );
@@ -262,9 +540,20 @@ auto HcSessionGraphItem::paint(
         // via no pivoting agent
         //
 
+        //
         // TODO: make it available over the scripting engine
         //       to specify what kind of image to render
+        //
         painter->drawImage( rect, QImage( ":/graph/win11" ) );
+    }
+
+    //
+    // if the item has been selected then draw dashed boarder
+    // around the item to indicate it has been selected
+    //
+    if ( isSelected() ) {
+        painter->setPen( QPen( QBrush( Havoc->Theme.getOrange() ), 1, Qt::DashLine ) );
+        painter->drawRect( boundingRect() );
     }
 }
 
@@ -401,14 +690,6 @@ auto HcSessionGraphItem::advancePosition(
     return true;
 }
 
-// auto HcSessionGraphItem::shuffle(
-//     void
-// ) const -> void {
-//     for ( const auto node : graph()->nodes() ) {
-//         node->item->setPos( -150 + QRandomGenerator::global()->bounded( 300 ), -150 + QRandomGenerator::global()->bounded( 300 ) );
-//     }
-// }
-
 auto HcSessionGraphItem::mousePressEvent(
     QGraphicsSceneMouseEvent* event
 ) -> void {
@@ -447,32 +728,36 @@ HcSessionGraphEdge::HcSessionGraphEdge(
     source->addEdge( this );
     destination->addEdge( this );
 
+    pulsate.timer = new QTimer();
+    pulsate.color = Havoc->Theme.getGreen();
+    _signals      = new HcGraphItemSignal( this );
+
+    QObject::connect( pulsate.timer, &QTimer::timeout, _signals, &HcGraphItemSignal::updatePulsation );
+
     adjust();
 }
 
-auto HcSessionGraphEdge::source() const -> HcSessionGraphItem *
-{
-    return _source;
+HcSessionGraphEdge::~HcSessionGraphEdge() {
+
 }
 
-auto HcSessionGraphEdge::destination() const -> HcSessionGraphItem *
-{
-    return _destination;
-}
+auto HcSessionGraphEdge::source()      const -> HcSessionGraphItem* { return _source;      }
+auto HcSessionGraphEdge::destination() const -> HcSessionGraphItem* { return _destination; }
 
 auto HcSessionGraphEdge::adjust() -> void
 {
-    if ( ! source() || ! destination() )
+    if ( ! source() || ! destination() ) {
         return;
+    }
 
-    auto line   = QLineF( mapFromItem( source(), 0, 0 ), mapFromItem( destination(), 0, 0 ) );
+    auto line   = QLineF( mapFromItem( source(), 0, 0 ), mapFromItem( destination(), 0, -30 ) );
     auto length = line.length();
 
     prepareGeometryChange();
 
     if ( length > qreal( 20. ) ) {
         auto edgeSpace  = 50;
-        auto edgeOffset = QPointF( ( line.dx() * edgeSpace ) / length, ( line.dy() * edgeSpace ) / length );
+        auto edgeOffset = QPointF( ( ( line.dx() * edgeSpace ) / length ), ( ( line.dy() * edgeSpace ) / length ) - 10 );
 
         sourcePoint = line.p1() + edgeOffset;
         destPoint   = line.p2() - edgeOffset;
@@ -485,6 +770,27 @@ auto HcSessionGraphEdge::setColor(
     const QColor& color
 ) -> void {
     this->color = color;
+}
+
+auto HcSessionGraphEdge::startPulsation() -> void
+{
+    if ( ! _source->graph()->settings()->pulsation() ) {
+        //
+        // if pulsation has been disabled then we won't be displaying it
+        //
+        return;
+    }
+
+    pulsate.active = true;
+    pulsate.step   = 0;
+
+    pulsate.timer->start( 50 );
+
+    QTimer::singleShot( 1000, [ this ] ( ) {
+        pulsate.active = false;
+        pulsate.timer->stop();
+        update();
+    } );
 }
 
 QRectF HcSessionGraphEdge::boundingRect() const {
@@ -516,16 +822,28 @@ void HcSessionGraphEdge::paint(
         return;
     }
 
+    //
+    // TODO: make the connections dashed if the session is beaconing
+    //       back, while make it straight lines if the connections are
+    //       interactive and activate pulsating
+    //
+
+    // Calculate the pulsating effect (e.g., changing color intensity)
+    auto current_color = pulsate.active ? pulsate.color : color;
+    if ( pulsate.active ) {
+        int alpha = 100 + ( 105 * std::sin( M_PI * pulsate.step / 10 ) );
+        current_color.setAlpha( alpha );
+    }
+
     auto angle         = std::atan2( -line.dy(), line.dx() );
     auto sourceArrowP1 = sourcePoint + QPointF( sin( angle + M_PI / 3 ) * arrowSize, cos( angle + M_PI / 3 ) * arrowSize );
     auto sourceArrowP2 = sourcePoint + QPointF( sin( angle + M_PI - M_PI / 3 ) * arrowSize, cos( angle + M_PI - M_PI / 3 ) * arrowSize );
     auto destArrowP1   = destPoint   + QPointF( sin( angle - M_PI / 3 ) * arrowSize, cos( angle - M_PI / 3 ) * arrowSize );
     auto destArrowP2   = destPoint   + QPointF( sin( angle - M_PI + M_PI / 3 ) * arrowSize, cos( angle - M_PI + M_PI / 3 ) * arrowSize );
 
-    // Draw the line itself
-    painter->setPen( QPen( color, 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin ) );
+    painter->setPen( QPen( current_color, 2, Qt::DashLine, Qt::RoundCap, Qt::RoundJoin ) );
     painter->drawLine( line );
-    painter->setBrush( color );
+    painter->setBrush( current_color );
 
     if ( source()->agent() == nullptr ) {
         painter->drawPolygon( QPolygonF() << line.p1() << sourceArrowP1 << sourceArrowP2 );
@@ -535,16 +853,32 @@ void HcSessionGraphEdge::paint(
 }
 
 //
-// HcSessionGraphButton
+// HcGraphItemSignal
 //
 
-HcSessionGraphButton::HcSessionGraphButton(
+HcGraphItemSignal::HcGraphItemSignal(
+    HcSessionGraphEdge* edge
+) : edge( edge ) {}
+
+HcGraphItemSignal::~HcGraphItemSignal() = default;
+
+auto HcGraphItemSignal::updatePulsation() const -> void {
+    edge->pulsate.step = ( edge->pulsate.step + 1 ) % 10;
+    edge->update();
+}
+
+//
+// HcSessionGraphSetting
+//
+
+HcSessionGraphSetting::HcSessionGraphSetting(
     QWidget* parent
 ) : QToolButton( parent ) {
-    menu.addAction( "show domain" )->setCheckable( true );
-    menu.addAction( "show direct only" )->setCheckable( true );
-    menu.addAction( "show elevated only" )->setCheckable( true );
     menu.setStyleSheet( HavocClient::StyleSheet() );
+
+    _pulsation = menu.addAction( "show pulsation" );
+    _pulsation->setCheckable( true );
+    _pulsation->setChecked( true );
 
     setAttribute( Qt::WA_TranslucentBackground );
     setStyleSheet( "background: transparent;" );
@@ -558,4 +892,10 @@ HcSessionGraphButton::HcSessionGraphButton(
     setMaximumWidth( 90 );
 }
 
-HcSessionGraphButton::~HcSessionGraphButton() = default;
+HcSessionGraphSetting::~HcSessionGraphSetting() = default;
+
+auto HcSessionGraphSetting::pulsation(
+    void
+) -> bool {
+    return _pulsation->isChecked();
+}

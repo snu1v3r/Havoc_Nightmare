@@ -676,8 +676,10 @@ auto HcPageAgent::removeAgent(
         HcPythonAcquire();
 
         AgentTab->removeTab( AgentTab->indexOf( agent->console ) );
+        AgentGraph->removeAgent( agent );
 
         spdlog::debug( "agent delete objects" );
+
 
         delete agent->console;
         delete agent;

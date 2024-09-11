@@ -12,10 +12,12 @@
 #include <QScrollBar>
 #include <QRect>
 
-class HcSessionGraphButton;
+class HcSessionGraphSetting;
 class HcSessionGraphItem;
 class HcSessionGraphEdge;
 class HcSessionGraph;
+class HcGraphItemSignal;
+
 
 //
 // HcSessionGraphItem
@@ -23,16 +25,23 @@ class HcSessionGraph;
 
 class HcSessionGraphItem final : public QGraphicsItem
 {
-    HcAgent*                           _agent   = {};
-    std::optional<HcSessionGraphItem*> _parent  = {};
-    HcSessionGraph*                    _graph   = {};
-    QPointF                            _pos     = {};
-    HcSessionGraphEdge*                edge     = {};
-    std::vector<HcSessionGraphItem*>   children = {};
-    QRectF                             rect     = {};
+    HcAgent*                           _agent    = {};
+    HcSessionGraphItem*                _parent   = {};
+    HcSessionGraph*                    _graph    = {};
+    QPointF                            _pos      = {};
+    std::vector<HcSessionGraphItem*>   _children = {};
+    HcSessionGraphEdge*                edge      = {};
+    QRectF                             rect      = {};
+    std::vector<HcSessionGraphEdge*>   edges     = {};
 
-    std::vector<HcSessionGraphEdge*> edges;
 public:
+    HcSessionGraphItem* Thread   = nullptr; // For extreme left or right nodes, used to provide a successor node in a contour.
+    HcSessionGraphItem* Ancestor = this;    // During the tree layout, it points to the node's ancestor that is used to determine how far apart different subtrees should be.
+    double              Prelim   = 0;       // Preliminary y-coordinate calculated during the first tree traversal.
+    double              Modifier = 0;       // Amount to adjust a node's y-coordinate, based on the positions of its descendants.
+    double              Shift    = 0;       // Amount to move subtrees apart to avoid overlaps.
+    double              Change   = 0;       // Rate of change in shift amount, used to evenly distribute shifts among siblings.
+
     explicit HcSessionGraphItem();
     ~HcSessionGraphItem() override;
 
@@ -56,6 +65,10 @@ public:
         HcSessionGraphItem* agent
     ) -> void;
 
+    auto removePivot(
+        const HcSessionGraphItem* agent
+    ) -> void;
+
     auto pivots(
         void
     ) const -> std::vector<HcSessionGraphItem*>;
@@ -66,7 +79,7 @@ public:
 
     auto parent(
         void
-    ) const -> std::optional<HcSessionGraphItem*>;
+    ) const -> HcSessionGraphItem*;
 
     auto addEdge(
         HcSessionGraphEdge* edge
@@ -82,9 +95,6 @@ public:
 
     auto calculateForces() -> void;
     auto advancePosition() -> bool;
-
-// public Q_SLOTS:
-//     auto shuffle() const -> void;
 
 protected:
     auto boundingRect(
@@ -124,13 +134,22 @@ class HcSessionGraphEdge final : public QGraphicsItem
     QPointF             sourcePoint  = {};
     QPointF             destPoint    = {};
     qreal               arrowSize    = 10;
+    HcGraphItemSignal*  _signals     = {};
 
 public:
+    struct {
+        QColor  color;
+        QTimer* timer;
+        bool    active;
+        int     step;
+    } pulsate;
+
     explicit HcSessionGraphEdge(
         HcSessionGraphItem* source,
         HcSessionGraphItem* destination,
         QColor              color
     );
+    ~HcSessionGraphEdge();
 
     auto source() const -> HcSessionGraphItem*;
     auto destination() const -> HcSessionGraphItem*;
@@ -143,36 +162,149 @@ public:
     enum { Type = UserType + 2 };
     int type() const override { return Type; }
 
+    auto startPulsation() -> void;
+
 protected:
     QRectF boundingRect() const override;
     void paint( QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget ) override;
 };
 
-class HcSessionGraphButton final : public QToolButton
+//
+// HcGraphItemSignal
+//
+
+class HcGraphItemSignal final : public QObject
 {
     Q_OBJECT
 
-    QMenu menu;
+    HcSessionGraphEdge* edge = {};
 
 public:
-    explicit HcSessionGraphButton( QWidget* parent = nullptr );
-    ~HcSessionGraphButton() override;
+    explicit HcGraphItemSignal(
+        HcSessionGraphEdge* edge
+    );
+    ~HcGraphItemSignal();
+
+public Q_SLOTS:
+    auto updatePulsation() const -> void;
+};
+
+//
+// HcSessionGraphSetting
+//
+
+class HcSessionGraphSetting final : public QToolButton
+{
+    Q_OBJECT
+
+    QMenu    menu       = QMenu();
+    QAction* _pulsation = {};
+
+public:
+    explicit HcSessionGraphSetting( QWidget* parent = nullptr );
+    ~HcSessionGraphSetting() override;
+
+    auto pulsation() -> bool;
+};
+
+//
+// HcSessionGraphInfo
+//
+
+class HcSessionGraphInfo final : public QWidget {
+
+};
+
+//
+// HcGraphLayoutTree
+//
+
+class HcGraphLayoutTree {
+
+public:
+    static double X_SEP;
+    static double Y_SEP;
+
+    static auto initNode(
+        HcSessionGraphItem* item
+    ) -> void;
+
+    static auto draw(
+        HcSessionGraphItem* item
+    ) -> void;
+
+    static auto firstWalk(
+        HcSessionGraphItem* item
+    ) -> void;
+
+    static auto apportion(
+        HcSessionGraphItem*  item,
+        HcSessionGraphItem*& defaultAncestor
+    ) -> void;
+
+    static auto moveSubtree(
+        HcSessionGraphItem* wm,
+        HcSessionGraphItem* wp,
+        double shift
+    ) -> void;
+
+    static auto nextLeft(
+        HcSessionGraphItem* v
+    ) -> HcSessionGraphItem*;
+
+    static auto nextRight(
+        HcSessionGraphItem* v
+    ) -> HcSessionGraphItem*;
+
+    static auto ancestor(
+        HcSessionGraphItem* vim,
+        HcSessionGraphItem* v,
+        HcSessionGraphItem*& defaultAncestor
+    ) -> HcSessionGraphItem*;
+
+    static auto executeShifts(
+        HcSessionGraphItem* item
+    ) -> void;
+
+    static auto secondWalk(
+        HcSessionGraphItem* item,
+        double m,
+        double depth
+    ) -> void;
 };
 
 //
 // HcSessionGraph
 //
 
+class HcSessionGraphScene final : public QGraphicsScene
+{
+    Q_OBJECT
+
+    int grid_size = 0;
+
+public:
+    explicit HcSessionGraphScene(
+        int      grid_size = 50,
+        QObject* parent    = nullptr
+    );
+
+    ~HcSessionGraphScene() override;
+
+private:
+    auto mouseMoveEvent( QGraphicsSceneMouseEvent* event ) -> void override;
+};
+
 class HcSessionGraph final : public QGraphicsView
 {
     Q_OBJECT
 
-    std::vector<HcSessionGraphItem*> _nodes   = {};
-    QGraphicsScene*                  scene    = {};
-    HcSessionGraphItem*              server   = {};
-    HcSessionGraphButton*            button   = {};
-    QVBoxLayout*                     layout   = {};
-    int                              timer_id = 0;
+    std::vector<HcSessionGraphItem*> _nodes     = {};
+    HcSessionGraphSetting*           _settings  = {};
+    HcSessionGraphScene*             scene      = {};
+    HcSessionGraphItem*              server     = {};
+    QVBoxLayout*                     box_layout = {};
+    int                              timer_id   = 0;
 
 public:
     explicit HcSessionGraph( QWidget *parent = nullptr );
@@ -186,10 +318,17 @@ public:
         HcAgent* agent
     ) -> HcSessionGraphItem*;
 
+    auto removeAgent(const HcAgent* agent
+    ) -> void;
+
+    auto isServer(
+        const HcSessionGraphItem* item
+    ) const -> bool;
+
     auto itemMoved() -> void;
 
     auto nodes() -> std::vector<HcSessionGraphItem*>;
-
+    auto settings() -> HcSessionGraphSetting*;
 protected:
     void keyPressEvent( QKeyEvent* event ) override;
     void resizeEvent( QResizeEvent* event ) override;
