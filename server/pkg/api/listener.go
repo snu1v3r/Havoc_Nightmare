@@ -44,16 +44,19 @@ func (api *ServerApi) listenerStart(ctx *gin.Context) {
 
 	name, err = utils.MapKey[string](listener, "name")
 	if err != nil {
+		logger.DebugError("error parsing request: %v", err)
 		goto ERROR
 	}
 
 	protocol, err = utils.MapKey[string](listener, "protocol")
 	if err != nil {
+		logger.DebugError("error parsing request: %v", err)
 		goto ERROR
 	}
 
-	options, err = utils.MapKey[map[string]any](listener, "data")
+	options, err = utils.MapKey[map[string]any](listener, "config")
 	if err != nil {
+		logger.DebugError("error parsing request: %v", err)
 		goto ERROR
 	}
 
