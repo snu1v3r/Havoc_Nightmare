@@ -56,6 +56,10 @@
         <file alias="16px-agent-console">../data/icons/16px-console.png</file>
         <file alias="32px-agent-console">../data/icons/32px-console.png</file>
 
+        <file alias="32px-network">../data/icons/32px-network.png</file>
+        <file alias="32px-table-list">../data/icons/32px-table-list.png</file>
+        <file alias="32px-detach">../data/icons/32px-detach.png</file>
+
         <file alias="16px-remove">../data/icons/16px-trash-bin.png</file>
         <file alias="32px-flash">../data/icons/32px-flash.png</file>
         <file alias="32px-align">../data/icons/32px-align.png</file>

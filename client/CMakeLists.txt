@@ -10,6 +10,7 @@ set( CMAKE_AUTOMOC ON )
 set( CMAKE_AUTORCC ON )
 set( CMAKE_AUTOUIC ON )
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY .. )
+set( QT_VERSION_MAJOR 6 )
 
 ##
 ## build parameter
@@ -39,6 +40,8 @@ include_directories( extern/json/include )
 include_directories( extern/spdlog/include )
 include_directories( extern/toml )
 include_directories( extern/http )
+include_directories( extern/http )
+include_directories( extern/Qt-Advanced-Docking-System/src )
 
 ##
 ## packages
@@ -53,6 +56,7 @@ link_directories( ${Python_LIBRARY_DIRS} )
 ## submodules
 ##
 add_subdirectory( extern/pybind11 )
+add_subdirectory( extern/Qt-Advanced-Docking-System )
 
 ##
 ## Havoc include
@@ -137,6 +141,7 @@ set( HAVOC_SRC
 ##
 add_executable( ${BINARY_NAME} ${HAVOC_INCLUDE} ${HAVOC_SRC} ${APP_ICON_RESOURCE_WINDOWS} )
 
+
 ##
 ## linking external libraries
 ##
@@ -146,4 +151,5 @@ target_link_libraries( ${BINARY_NAME} PRIVATE
         OpenSSL::SSL
         OpenSSL::Crypto
         pybind11::embed
+        ads::qt6advanceddocking
 )

@@ -15,7 +15,7 @@ HcSessionGraph::HcSessionGraph(
     setRenderHint( QPainter::Antialiasing );
     scaleView( 1 );
 
-    box_layout = new QVBoxLayout( this );
+    box_layout = new QGridLayout( this );
     _settings  = new HcSessionGraphSetting( this );
 
     box_layout->setAlignment( Qt::AlignLeft | Qt::AlignTop );
@@ -528,22 +528,25 @@ auto HcSessionGraphItem::paint(
         // in this scene (aka havoc server)
         //
         painter->drawImage( rect, QImage( ":/graph/server" ) );
-    } else if ( ! graph()->isServer( parent() ) ) {
-        //
-        // check if the parent is not the server. if no then
-        // it means that the current item is a pivot session
-        //
-        spdlog::debug( "[HcSessionGraphItem::paint] pivot" );
     } else {
-        //
-        // it's a direct session connection
-        // via no pivoting agent
-        //
+        if ( ! graph()->isServer( parent() ) ) {
+            //
+            // check if the parent is not the server. if no then
+            // it means that the current item is a pivot session
+            //
+            spdlog::debug( "[HcSessionGraphItem::paint] pivot" );
+        } else {
+            //
+            // it's a direct session connection
+            // via no pivoting agent
+            //
 
-        //
-        // TODO: make it available over the scripting engine
-        //       to specify what kind of image to render
-        //
+            //
+            // TODO: make it available over the scripting engine
+            //       to specify what kind of image to render
+            //
+        }
+
         painter->drawImage( rect, QImage( ":/graph/win11" ) );
     }
 

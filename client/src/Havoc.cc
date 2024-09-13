@@ -208,7 +208,6 @@ auto HavocClient::Main(
     // create main window
     //
     Gui = new HcMainWindow;
-    Gui->renderWindow();
     Gui->setStyleSheet( StyleSheet() );
 
     //
@@ -417,6 +416,7 @@ auto HavocClient::SetupThreads() -> void {
     // pulling all the listeners, agents, etc. from the server
     //
     connect( MetaWorker.Worker, &HcMetaWorker::eventWorkerRun, this, [&](){
+        Gui->renderWindow();
         Events.Thread->start();
     } );
 

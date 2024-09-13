@@ -25,3 +25,6 @@
 [submodule "client/extern/pybind11_json"]
 	path = client/extern/pybind11_json
 	url = https://github.com/pybind/pybind11_json
+[submodule "client/extern/Qt-Advanced-Docking-System"]
+	path = client/extern/Qt-Advanced-Docking-System
+	url = https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System.git

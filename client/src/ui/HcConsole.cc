@@ -30,7 +30,7 @@ HcConsole::HcConsole(
     Input->setObjectName( "Input" );
     Input->addAction( tr( "Clear console screen" ), QKeySequence( Qt::CTRL | Qt::Key::Key_L ), this, [&](){ Console->clear(); } );
 
-    QObject::connect( Input, &QLineEdit::returnPressed, this, &HcConsole::inputEnter );
+    connect( Input, &QLineEdit::returnPressed, this, &HcConsole::inputEnter );
 
     gridLayout->addWidget( LabelHeader, 0, 0, 1, 2 );
     gridLayout->addWidget( Console,     1, 0, 1, 2 );

@@ -1,3 +1,95 @@
+/*
+ * StyleSheet for docking system
+ */
+
+ads--CDockManager {
+    background: #313342;
+}
+
+ads--CDockWidget {
+    background-color: black;
+}
+
+ads--CDockWidgetTab {
+    background: #313342;
+    color: #f8f8f2;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    border: 1px solid rgba(49, 51, 66, 0.88);
+}
+
+ads--CDockWidgetTab[activeTab="true"] {
+    background: #44475A;
+    color: #f8f8f2;
+    border: 1px solid #6272A4;
+    border-bottom: 0px;
+}
+
+ads--CDockWidgetTab[activeTab="false"] {
+    background: #313342;
+    color: #f8f8f2;
+    border: 1px solid #44475A;
+}
+
+ads--CDockAreaTitleBar
+{
+    background: transparent;
+    border-bottom: 1px solid #6272A4;
+    padding-bottom: 0px;
+}
+
+/*
+ * this is a small dirty fix that will allow the agent
+ * console to actually adapt the color style sheet
+ */
+#HcAgentConsole {
+    background: transparent;
+}
+
+QScrollArea#dockWidgetScrollArea {
+    background: #313342;
+    border: none;
+}
+
+#tabCloseButton {
+    margin-top: 2px;
+    background: none;
+    border: none;
+    qproperty-icon: url(:/icons/tab-close-button),
+    url(:/icons/tab-close-button) disabled;
+    qproperty-iconSize: 20px;
+}
+
+#tabCloseButton:hover {
+    border: 1px solid #313342;
+    background: #313342;
+}
+
+#tabCloseButton:pressed {
+    background: #282A36;
+}
+
+#detachGroupButton {
+    margin-top: 2px;
+    background: none;
+    border: none;
+    qproperty-icon: url(:/icons/32px-detach),
+    url(:/icons/32px-detach) disabled;
+    qproperty-iconSize: 16px;
+}
+
+#detachGroupButton:hover {
+    border: 1px solid #313342;
+    background: #313342;
+}
+
+#detachGroupButton:pressed {
+    background: #282A36;
+}
+
+/*
+ * Qt Widgets styling
+ */
 
 HcTheme {
     qproperty-Background: #282A36;

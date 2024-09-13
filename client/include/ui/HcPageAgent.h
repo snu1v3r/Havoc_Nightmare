@@ -2,22 +2,18 @@
 #define HAVOCCLIENT_HCPAGEAGENT_H
 
 #include <QStackedWidget>
-#include <QtCore/QVariant>
-#include <QtWidgets/QApplication>
 #include <QtWidgets/QComboBox>
-#include <QtWidgets/QGridLayout>
-#include <QtWidgets/QHeaderView>
-#include <QtWidgets/QLabel>
-#include <QtWidgets/QSpacerItem>
 #include <QtWidgets/QSplitter>
 #include <QtWidgets/QTabWidget>
 #include <QtWidgets/QTableWidget>
 #include <QtWidgets/QWidget>
-#include <QtWidgets/QPushButton>
 
 #include <ui/HcConsole.h>
 #include <ui/HcSessionGraph.h>
 #include <core/HcAgent.h>
+
+#include <DockManager.h>
+#include <DockWidget.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -35,37 +31,37 @@ public:
 
 class HcPageAgent : public QWidget
 {
-    bool SplitterMoveToggle = false;
+    bool                  SplitterMoveToggle  = false;
+    ads::CDockAreaWidget* ConsoleAreaWidget   = {};
 
 public:
-    QGridLayout*      gridLayout             = nullptr;
-    QComboBox*        ComboAgentView         = nullptr;
-    QSplitter*        Splitter               = nullptr;
-    QStackedWidget*   StackedWidget          = nullptr;
-    QTableWidget*     AgentTable             = nullptr;
-    HcSessionGraph*   AgentGraph             = nullptr;
-    QTabWidget*       AgentTab               = nullptr;
-    QLabel*           AgentDisplayerElevated = nullptr;
-    QLabel*           AgentDisplayerSessions = nullptr;
-    QLabel*           AgentDisplayerTargets  = nullptr;
-    QLabel*           AgentDisplayerPivots   = nullptr;
-    QToolButton*      AgentActionButton      = nullptr;
-    QMenu*            AgentActionMenu        = nullptr;
-    QAction*          ActionPayload          = nullptr;
-    QAction*          ActionShowHidden       = nullptr;
-    QSpacerItem*      horizontalSpacer       = nullptr;
+    ads::CDockManager* DockManager            = {};
+    QGridLayout*       gridLayout             = {};
+    QSplitter*         Splitter               = {};
+    QStackedWidget*    StackedWidget          = {};
+    QTableWidget*      AgentTable             = {};
+    HcSessionGraph*    AgentGraph             = {};
+    QLabel*            AgentDisplayerElevated = {};
+    QLabel*            AgentDisplayerSessions = {};
+    QLabel*            AgentDisplayerTargets  = {};
+    QLabel*            AgentDisplayerPivots   = {};
+    QToolButton*       AgentActionButton      = {};
+    QMenu*             AgentActionMenu        = {};
+    QAction*           ActionPayload          = {};
+    QAction*           ActionShowHidden       = {};
+    QSpacerItem*       horizontalSpacer       = {};
 
-    QTableWidgetItem* TitleAgentID           = nullptr;
-    QTableWidgetItem* TitleInternal          = nullptr;
-    QTableWidgetItem* TitleUsername          = nullptr;
-    QTableWidgetItem* TitleHostname          = nullptr;
-    QTableWidgetItem* TitleSystem            = nullptr;
-    QTableWidgetItem* TitleProcessID         = nullptr;
-    QTableWidgetItem* TitleProcessName       = nullptr;
-    QTableWidgetItem* TitleProcessArch       = nullptr;
-    QTableWidgetItem* TitleThreadID          = nullptr;
-    QTableWidgetItem* TitleNote              = nullptr;
-    QTableWidgetItem* TitleLastCallback      = nullptr;
+    QTableWidgetItem*  TitleAgentID           = {};
+    QTableWidgetItem*  TitleInternal          = {};
+    QTableWidgetItem*  TitleUsername          = {};
+    QTableWidgetItem*  TitleHostname          = {};
+    QTableWidgetItem*  TitleSystem            = {};
+    QTableWidgetItem*  TitleProcessID         = {};
+    QTableWidgetItem*  TitleProcessName       = {};
+    QTableWidgetItem*  TitleProcessArch       = {};
+    QTableWidgetItem*  TitleThreadID          = {};
+    QTableWidgetItem*  TitleNote              = {};
+    QTableWidgetItem*  TitleLastCallback      = {};
 
     std::vector<HcAgent*> agents = {};
 
@@ -77,7 +73,7 @@ public:
     auto addTab(
         const QString& name,
         QWidget*       widget
-    ) const -> void;
+    ) -> void;
 
     auto addAgent(
         const json& metadata
@@ -110,10 +106,6 @@ private Q_SLOTS:
         const QModelIndex& index
     ) -> void;
 
-    auto tabCloseRequested(
-        int index
-    ) const -> void;
-
     auto itemChanged(
         QTableWidgetItem *item
     ) -> void;
@@ -128,10 +120,6 @@ private Q_SLOTS:
 
     auto actionTriggered(
         QAction* triggered
-    ) -> void;
-
-    auto viewChanged(
-        int index
     ) -> void;
 };
 

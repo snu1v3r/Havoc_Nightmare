@@ -303,7 +303,7 @@ class HcSessionGraph final : public QGraphicsView
     HcSessionGraphSetting*           _settings  = {};
     HcSessionGraphScene*             scene      = {};
     HcSessionGraphItem*              server     = {};
-    QVBoxLayout*                     box_layout = {};
+    QGridLayout*                     box_layout = {};
     int                              timer_id   = 0;
 
 public:

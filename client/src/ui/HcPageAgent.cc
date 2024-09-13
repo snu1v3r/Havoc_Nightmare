@@ -1,34 +1,29 @@
 #include <Havoc.h>
 #include <ui/HcPageAgent.h>
 #include <QtConcurrent/QtConcurrent>
+#include <DockManager.h>
+
+#include "DockAreaWidget.h"
 
 HcPageAgent::HcPageAgent(
     QWidget* parent
 ) : QWidget( parent ) {
-
     if ( objectName().isEmpty() ) {
-        setObjectName( QString::fromUtf8( "PageAgent" ) );
+        setObjectName( "PageAgent" );
     }
 
     gridLayout = new QGridLayout( this );
     gridLayout->setObjectName( "gridLayout" );
 
-    ComboAgentView = new QComboBox( this );
-    ComboAgentView->setObjectName( "ComboAgentView" );
-    ComboAgentView->view()->setProperty( "ComboBox", "true" );
+    DockManager = new ads::CDockManager( this );
+    DockManager->setStyleSheet( HavocClient::StyleSheet() );
 
-    Splitter = new QSplitter( this );
-    Splitter->setObjectName( QString::fromUtf8( "Splitter" ) );
-    Splitter->setOrientation( Qt::Vertical );
-
-    StackedWidget = new QStackedWidget( Splitter );
-    StackedWidget->setContentsMargins( 0, 0, 0, 0 );
-
-    AgentTable = new QTableWidget( StackedWidget );
-    AgentTable->setObjectName( "AgentTable" );
-
-    AgentGraph = new HcSessionGraph( StackedWidget );
-    AgentGraph->setObjectName( "AgentGraph" );
+    ads::CDockManager::setConfigFlag( ads::CDockManager::AlwaysShowTabs, false );
+    ads::CDockManager::setConfigFlag( ads::CDockManager::DefaultDockAreaButtons, false );
+    ads::CDockManager::setConfigFlag( ads::CDockManager::ActiveTabHasCloseButton, false );
+    ads::CDockManager::setConfigFlag( ads::CDockManager::AllTabsHaveCloseButton, true );
+    ads::CDockManager::setConfigFlag( ads::CDockManager::DockAreaDynamicTabsMenuButtonVisibility, true );
+    ads::CDockManager::setConfigFlag( ads::CDockManager::FloatingContainerHasWidgetIcon, false );
 
     TitleAgentID      = new QTableWidgetItem( "UUID" );
     TitleInternal     = new QTableWidgetItem( "Internal" );
@@ -41,6 +36,9 @@ HcPageAgent::HcPageAgent(
     TitleThreadID     = new QTableWidgetItem( "Tid" );
     TitleNote         = new QTableWidgetItem( "Note" );
     TitleLastCallback = new QTableWidgetItem( "Last" );
+
+    AgentTable = new QTableWidget( this );
+    AgentTable->setObjectName( "AgentTable" );
 
     if ( AgentTable->columnCount() < 11 ) {
         AgentTable->setColumnCount( 11 );
@@ -75,11 +73,22 @@ HcPageAgent::HcPageAgent(
     AgentTable->setFocusPolicy( Qt::NoFocus );
     AgentTable->setAlternatingRowColors( true );
 
-    AgentTab = new QTabWidget( Splitter );
-    AgentTab->setObjectName( "AgentTab" );
-    AgentTab->setTabsClosable( true );
-    AgentTab->setMovable( true );
-    AgentTab->tabBar()->setProperty( "HcTab", "true" );
+    AgentGraph = new HcSessionGraph( this );
+    AgentGraph->setObjectName( "AgentGraph" );
+
+    auto graph = new ads::CDockWidget( "Session Graph" );
+    auto table = new ads::CDockWidget( "Session Table" );
+
+    graph->setWidget( AgentGraph );
+    graph->setFeatures( ads::CDockWidget::DockWidgetMovable );
+    graph->setIcon( QIcon( ":/icons/32px-network" ) );
+
+    table->setWidget( AgentTable );
+    table->setFeatures( ads::CDockWidget::DockWidgetMovable );
+    table->setIcon( QIcon( ":/icons/32px-table-list" ) );
+
+    auto area = DockManager->addDockWidget( ads::TopDockWidgetArea, graph );
+    DockManager->addDockWidgetTabToArea( table, area );
 
     AgentDisplayerSessions = new QLabel( this );
     AgentDisplayerSessions->setObjectName( "LabelDisplaySessions" );
@@ -98,8 +107,8 @@ HcPageAgent::HcPageAgent(
     AgentDisplayerElevated->setProperty( "HcLabelDisplay", "true" );
 
     horizontalSpacer = new QSpacerItem( 40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum );
-    AgentActionMenu  = new QMenu( this );
 
+    AgentActionMenu  = new QMenu( this );
     ActionPayload    = AgentActionMenu->addAction( QIcon( ":/icons/16px-payload-build" ), "Payload Builder" );
     ActionShowHidden = AgentActionMenu->addAction( QIcon( ":/icons/32px-eye-white" ), "Show Hidden" );
     ActionShowHidden->setCheckable( true );
@@ -115,32 +124,22 @@ HcPageAgent::HcPageAgent(
     AgentActionButton->setLayoutDirection( Qt::LeftToRight );
     AgentActionButton->setMaximumWidth( 90 );
 
-    StackedWidget->addWidget( AgentTable );
-    StackedWidget->addWidget( AgentGraph );
-
-    Splitter->addWidget( StackedWidget );
-    Splitter->addWidget( AgentTab );
-    Splitter->handle( 1 )->setEnabled( SplitterMoveToggle ); /* disabled by default */
-
     connect( AgentTable, &QTableWidget::customContextMenuRequested, this, &HcPageAgent::handleAgentMenu );
     connect( AgentTable, &QTableWidget::doubleClicked, this, &HcPageAgent::handleAgentDoubleClick );
-    connect( AgentTab, &QTabWidget::tabCloseRequested, this, &HcPageAgent::tabCloseRequested );
     connect( ActionPayload, &QAction::triggered, this, &HcPageAgent::actionPayloadBuilder );
     connect( ActionShowHidden, &QAction::triggered, this, &HcPageAgent::actionShowHidden );
     connect( AgentActionButton, &QToolButton::triggered, this, &HcPageAgent::actionTriggered );
     connect( AgentTable, &QTableWidget::itemChanged, this, &HcPageAgent::itemChanged );
-    connect( ComboAgentView, &QComboBox::currentIndexChanged, this, &HcPageAgent::viewChanged );
 
-    gridLayout->addWidget( ComboAgentView,         0, 0, 1, 1 );
-    gridLayout->addWidget( Splitter,               1, 0, 1, 7 );
-    gridLayout->addWidget( AgentDisplayerSessions, 0, 2, 1, 1 );
-    gridLayout->addWidget( AgentDisplayerTargets,  0, 1, 1, 1 );
-    gridLayout->addWidget( AgentDisplayerPivots,   0, 3, 1, 1 );
-    gridLayout->addWidget( AgentDisplayerElevated, 0, 4, 1, 1 );
-    gridLayout->addItem( horizontalSpacer,         0, 5, 1, 1 );
-    gridLayout->addWidget( AgentActionButton,      0, 6, 1, 1 );
+    gridLayout->addWidget( AgentDisplayerSessions, 0, 1, 1, 1 );
+    gridLayout->addWidget( AgentDisplayerTargets, 0, 0, 1, 1 );
+    gridLayout->addWidget( AgentDisplayerPivots, 0, 2, 1, 1 );
+    gridLayout->addWidget( AgentDisplayerElevated, 0, 3, 1, 1 );
+    gridLayout->addWidget( AgentActionButton, 0, 5, 1, 1 );
+    gridLayout->addWidget( DockManager, 1, 0, 1, 7 );
+    gridLayout->addItem( horizontalSpacer, 0, 4, 1, 1 );
 
-    retranslateUi( );
+    retranslateUi();
 
     QMetaObject::connectSlotsByName( this );
 }
@@ -154,20 +153,44 @@ auto HcPageAgent::retranslateUi() -> void {
     AgentDisplayerSessions->setText( "Sessions: 0" );
     AgentDisplayerTargets->setText( "Targets: 0" );
     AgentDisplayerPivots->setText( "Pivots: 0" );
-    ComboAgentView->addItems( QStringList() << "Sessions" << "Sessions Graph" );
 }
 
 auto HcPageAgent::addTab(
     const QString& name,
     QWidget*       widget
-) const -> void {
-    if ( AgentTab->count() == 0 ) {
-        Splitter->setSizes( QList<int>() << 200 << 220 );
-        Splitter->handle( 1 )->setEnabled( true );
-        Splitter->handle( 1 )->setCursor( Qt::SplitVCursor );
+) -> void {
+    //
+    // first try to find the widget and
+    // if found try to make it reappear
+    //
+    for ( const auto dock : DockManager->dockWidgetsMap() ) {
+        if ( dock->widget() == widget ) {
+            dock->toggleView( true );
+            return;
+        }
     }
 
-    AgentTab->setCurrentIndex( AgentTab->addTab( widget, QIcon( ":/icons/32px-agent-console" ), name ) );
+    //
+    // if not found then create a new widget
+    // and add it to the bottom dock area
+    //
+
+    const auto tab = new ads::CDockWidget( name );
+
+    tab->setWidget( widget );
+    tab->setIcon( QIcon( ":/icons/32px-agent-console" ) );
+    tab->setFeatures(
+        ads::CDockWidget::DockWidgetMovable   |
+        ads::CDockWidget::DockWidgetFloatable |
+        ads::CDockWidget::DockWidgetFocusable |
+        ads::CDockWidget::DockWidgetClosable
+    );
+
+    if ( ! ConsoleAreaWidget ) {
+        ConsoleAreaWidget = DockManager->addDockWidget( ads::BottomDockWidgetArea, tab );
+    } else {
+        DockManager->addDockWidgetTabToArea( tab, ConsoleAreaWidget );
+    }
 }
 
 HcAgentTableItem::HcAgentTableItem(
@@ -493,19 +516,19 @@ auto HcPageAgent::spawnAgentConsole(
 ) -> void {
     for ( auto& agent : agents ) {
         if ( agent->uuid == uuid ) {
-            auto user  = agent->data[ "meta" ][ "user" ].get<std::string>();
-            auto title = QString( "[%1] %2" ).arg( uuid.c_str() ).arg( user.c_str() );
+            const auto user  = agent->data[ "meta" ][ "user" ].get<std::string>();
+            const auto title = QString( "[%1] %2" ).arg( uuid.c_str() ).arg( user.c_str() );
 
             //
             // check if we already have the agent console open.
             // if yes then just focus on the opened tab already
             //
-            for ( int i = 0; i < AgentTab->count(); i++ ) {
-                if ( AgentTab->widget( i ) == agent->console ) {
-                    AgentTab->setCurrentIndex( i );
-                    return;
-                }
-            }
+            // for ( int i = 0; i < AgentTab->count(); i++ ) {
+            //     if ( AgentTab->widget( i ) == agent->console ) {
+            //         AgentTab->setCurrentIndex( i );
+            //         return;
+            //     }
+            // }
 
             //
             // no tab with the title name found so lets just add a new one
@@ -517,30 +540,12 @@ auto HcPageAgent::spawnAgentConsole(
     }
 }
 
-auto HcPageAgent::tabCloseRequested(
-    int index
-) const -> void {
-    if ( index == -1 ) {
-        return;
-    }
-
-    AgentTab->removeTab( index );
-
-    if ( AgentTab->count() == 0 ) {
-        Splitter->setSizes( QList<int>() << 0 );
-        Splitter->handle( 1 )->setEnabled( false );
-        Splitter->handle( 1 )->setCursor( Qt::ArrowCursor );
-    }
-}
-
 auto HcPageAgent::AgentConsole(
     const std::string& uuid,
     const std::string& format,
     const std::string& output
 ) -> void {
-    auto agent = Agent( uuid );
-
-    if ( agent.has_value() ) {
+    if ( const auto agent = Agent( uuid ); agent.has_value() ) {
         //
         // now print the content
         //
@@ -571,9 +576,9 @@ auto HcPageAgent::actionShowHidden(
 auto HcPageAgent::actionPayloadBuilder(
     bool checked
 ) -> void {
-    auto dialog = HcDialogBuilder();
-
     HcPythonAcquire();
+
+    auto dialog = HcDialogBuilder();
 
     QObject::connect( Havoc->Gui, &HcMainWindow::signalBuildLog, &dialog, &HcDialogBuilder::EventBuildLog );
 
@@ -633,12 +638,6 @@ auto HcPageAgent::actionTriggered(
     }
 }
 
-auto HcPageAgent::viewChanged(
-    int index
-) -> void {
-    StackedWidget->setCurrentIndex( index );
-}
-
 auto HcPageAgent::removeAgent(
     const std::string& uuid
 ) -> void {
@@ -675,11 +674,18 @@ auto HcPageAgent::removeAgent(
     if ( agent ) {
         HcPythonAcquire();
 
-        AgentTab->removeTab( AgentTab->indexOf( agent->console ) );
+        for ( const auto dock : DockManager->dockWidgetsMap() ) {
+            if ( dock->widget() == agent->console ) {
+                dock->closeDockWidget();
+                DockManager->removeDockWidget( dock );
+                delete dock;
+                return;
+            }
+        }
+
         AgentGraph->removeAgent( agent );
 
         spdlog::debug( "agent delete objects" );
-
 
         delete agent->console;
         delete agent;
@@ -692,7 +698,9 @@ auto HcPageAgent::removeAgent(
 HcAgentConsole::HcAgentConsole(
     HcAgent* meta,
     QWidget* parent
-) : HcConsole( parent ), Meta( meta ) {}
+) : HcConsole( parent ), Meta( meta ) {
+    setObjectName( "HcAgentConsole" );
+}
 
 auto HcAgentConsole::inputEnter(
     void
