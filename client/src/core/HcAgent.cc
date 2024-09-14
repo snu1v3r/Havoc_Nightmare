@@ -133,11 +133,11 @@ auto HcAgent::initialize() -> bool {
     // if an interface has been registered then assign it to the agent
     //
     interface = std::nullopt;
-    if ( auto interface = Havoc->AgentObject( type ); interface.has_value() ) {
+    if ( const auto object = Havoc->AgentObject( type ); object.has_value() ) {
         HcPythonAcquire();
 
         try {
-            interface = interface.value()( uuid, type, meta );
+            interface = object.value()( uuid, type, meta );
         } catch ( py11::error_already_set &eas ) {
             spdlog::error( "failed to invoke agent interface [uuid: {}] [type: {}]: \n{}", uuid, type, eas.what() );
         }
@@ -149,6 +149,8 @@ auto HcAgent::initialize() -> bool {
 auto HcAgent::remove() -> void {
     auto result = httplib::Result();
 
+    spdlog::debug( "agent::remove {}", uuid );
+
     result = Havoc->ApiSend( "/api/agent/remove", { { "uuid", uuid } } );
 
     if ( result->status != 200 ) {
@@ -159,13 +161,13 @@ auto HcAgent::remove() -> void {
         );
 
         spdlog::error( "failed to remove agent {}: {}", uuid, result->body );
-
-        return;
     }
 }
 
 auto HcAgent::hide() -> void {
     auto result = httplib::Result();
+
+    spdlog::debug( "agent::hide {}", uuid );
 
     result = Havoc->ApiSend( "/api/agent/hide", {
         { "uuid", uuid },

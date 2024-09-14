@@ -511,13 +511,12 @@ auto HcSessionGraphScene::contextMenuEvent(
             if ( session->agent() ) {
                 spdlog::debug( "session uuid: {}", session->agent()->uuid );
 
-
                 if ( action->text().compare( "Interact" ) == 0 ) {
                     Havoc->Gui->PageAgent->spawnAgentConsole( session->agent()->uuid );
                 } else if ( action->text().compare( "Remove" ) == 0 ) {
                     session->agent()->remove();
                 } else if ( action->text().compare( "Hide" ) == 0 ) {
-                    session->agent()->remove();
+                    session->agent()->hide();
                 } else {
                     for ( const auto agent_action : actions ) {
                         if ( agent_action->name       == action->text().toStdString() &&
@@ -698,79 +697,6 @@ auto HcSessionGraphItem::paint(
     if ( isSelected() ) {
         painter->setPen( QPen( QBrush( Havoc->Theme.getOrange() ), 1, Qt::DashLine ) );
         painter->drawRect( boundingRect() );
-    }
-}
-
-auto HcSessionGraphItem::contextMenuEvent(
-    QGraphicsSceneContextMenuEvent* event
-) -> void {
-    //
-    // only process context menu if on a agent session
-    //
-    if ( agent() == nullptr ) {
-        return QGraphicsItem::contextMenuEvent( event );
-    }
-
-    auto menu    = QMenu();
-    auto actions = Havoc->Actions( HavocClient::ActionObject::ActionAgent );
-
-    menu.setStyleSheet( HavocClient::StyleSheet() );
-
-    //
-    // if a single selected agent item then try
-    // to add the registered actions as well
-    //
-    menu.addAction( QIcon( ":/icons/16px-agent-console" ), "Interact" );
-    menu.addSeparator();
-
-    //
-    // add all agent type registered actions
-    //
-
-    for ( const auto action : actions ) {
-        if ( action->agent.type == agent()->type ) {
-            if ( action->icon.empty() ) {
-                menu.addAction( action->name.c_str() );
-            } else {
-                menu.addAction( QIcon( action->icon.c_str() ), action->name.c_str() );
-            }
-        }
-    }
-
-    menu.addSeparator();
-    menu.addAction( QIcon( ":/icons/16px-blind-white" ), "Hide" );
-    menu.addAction( QIcon( ":/icons/16px-remove" ), "Remove" );
-
-    const auto action = menu.exec( event->screenPos() );
-    if ( ! action ) {
-        return;
-    }
-
-    if ( action->text().compare( "Interact" ) == 0 ) {
-        Havoc->Gui->PageAgent->spawnAgentConsole( agent()->uuid );
-    } else if ( action->text().compare( "Remove" ) == 0 ) {
-        agent()->remove();
-    } else if ( action->text().compare( "Hide" ) == 0 ) {
-        agent()->hide();
-    } else {
-        for ( const auto act : actions ) {
-            if ( act->name       == action->text().toStdString() &&
-                 act->agent.type == agent()->type
-            ) {
-                if ( agent()->interface.has_value() ) {
-                    try {
-                        HcPythonAcquire();
-
-                        act->callback( agent()->interface.value() );
-                    } catch ( py11::error_already_set& e ) {
-                        spdlog::error( "failed to execute action callback: {}", e.what() );
-                    }
-                }
-                return;
-            }
-        }
-
-        spdlog::debug( "[ERROR] invalid action from selected agent menu" );
     }
 }
 

@@ -110,10 +110,6 @@ protected:
         QWidget* widget
     ) -> void override;
 
-    auto contextMenuEvent(
-        QGraphicsSceneContextMenuEvent* event
-    ) -> void override;
-
     auto itemChange(
         GraphicsItemChange change,
         const QVariant&    value

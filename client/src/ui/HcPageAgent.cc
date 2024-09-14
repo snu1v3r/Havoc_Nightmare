@@ -24,6 +24,7 @@ HcPageAgent::HcPageAgent(
     ads::CDockManager::setConfigFlag( ads::CDockManager::AllTabsHaveCloseButton, true );
     ads::CDockManager::setConfigFlag( ads::CDockManager::DockAreaDynamicTabsMenuButtonVisibility, true );
     ads::CDockManager::setConfigFlag( ads::CDockManager::FloatingContainerHasWidgetIcon, false );
+    ads::CDockManager::setConfigFlag( ads::CDockManager::DisableTabTextEliding, true );
 
     TitleAgentID      = new QTableWidgetItem( "UUID" );
     TitleInternal     = new QTableWidgetItem( "Internal" );
