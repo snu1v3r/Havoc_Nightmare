@@ -527,7 +527,6 @@ auto HavocClient::Agents() const -> std::vector<HcAgent *>
 auto HavocClient::Agent(
     const std::string& uuid
 ) const -> std::optional<HcAgent*> {
-
     for ( auto agent : Gui->PageAgent->agents ) {
         if ( agent->uuid == uuid ) {
             return agent;

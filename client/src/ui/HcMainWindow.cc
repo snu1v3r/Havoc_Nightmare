@@ -286,8 +286,14 @@ auto HcMainWindow::AddListener(
 }
 
 auto HcMainWindow::AddAgent(
-    const json& agent
+    const json& metadata
 ) -> void {
+    const auto agent = new HcAgent( metadata );
+    if ( ! agent->initialize() ) {
+        spdlog::debug( "[HcPageAgent::addAgent] failed to initialize agent" );
+        return;
+    }
+
     PageAgent->addAgent( agent );
 }
 

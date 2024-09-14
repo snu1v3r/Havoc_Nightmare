@@ -25,12 +25,12 @@ void HcHeartbeatWorker::run() {
  */
 auto HcHeartbeatWorker::updateHeartbeats() -> void
 {
-    auto format = QString( "dd-MMM-yyyy HH:mm:ss" );
+    const auto format = QString( "dd-MMM-yyyy HH:mm:ss" );
 
     //
     // iterate over registered agents
     //
-    for ( auto& agent : Havoc->Agents() ) {
+    for ( const auto& agent : Havoc->Agents() ) {
         //
         // TODO/FIX: if the teamserver and client are on two diff
         //           timezones the heartbeat is going to look weird
@@ -53,13 +53,13 @@ auto HcHeartbeatWorker::updateHeartbeats() -> void
         // update the table value
         //
         if ( diff < 60 ) {
-            agent->ui.Last->setText( QString( "%1s" ).arg( seconds ) );
+            agent->ui.table.Last->setText( QString( "%1s" ).arg( seconds ) );
         } else if ( diff < ( 60 * 60 ) ) {
-            agent->ui.Last->setText( QString( "%1m %2s" ).arg( minutes, seconds ) );
+            agent->ui.table.Last->setText( QString( "%1m %2s" ).arg( minutes, seconds ) );
         } else if ( diff < 24 * 60 * 60 ) {
-            agent->ui.Last->setText( QString( "%1h %2m" ).arg( hours, minutes ) );
+            agent->ui.table.Last->setText( QString( "%1h %2m" ).arg( hours, minutes ) );
         } else {
-            agent->ui.Last->setText( QString( "%1d %2h" ).arg( days, hours ) );
+            agent->ui.table.Last->setText( QString( "%1d %2h" ).arg( days, hours ) );
         }
     }
 }

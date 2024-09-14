@@ -76,7 +76,7 @@ public:
     ) -> void;
 
     auto addAgent(
-        const json& metadata
+        HcAgent* agent
     ) -> void;
 
     auto removeAgent(

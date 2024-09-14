@@ -195,166 +195,28 @@ auto HcPageAgent::addTab(
 
 HcAgentTableItem::HcAgentTableItem(
     const QString&          value,
+    HcAgent*                agent,
     const Qt::ItemFlag      flags,
     const Qt::AlignmentFlag align
-)  : QTableWidgetItem() {
+)  : agent( agent ) {
     setText( value );
     setTextAlignment( align );
     setFlags( this->flags() ^ flags );
 }
 
 auto HcPageAgent::addAgent(
-    const json& metadata
+    HcAgent* agent
 ) -> void {
-    auto uuid    = QString();
-    auto type    = std::string();
-    auto arch    = QString();
-    auto user    = QString();
-    auto host    = QString();
-    auto local   = QString();
-    auto path    = QString();
-    auto process = QString();
-    auto pid     = QString();
-    auto tid     = QString();
-    auto system  = QString();
-    auto last    = QString();
-    auto note    = QString();
-    auto meta    = json();
-    auto row     = AgentTable->rowCount();
-    auto sort    = AgentTable->isSortingEnabled();
-
-    if ( metadata.contains( "uuid" ) && metadata[ "uuid" ].is_string() ) {
-        uuid = QString( metadata[ "uuid" ].get<std::string>().c_str() );
-    } else {
-        spdlog::error( "[HcPageAgent::addAgent] agent does not contain valid uuid" );
-        return;
-    }
-
-    if ( metadata.contains( "type" ) && metadata[ "type" ].is_string() ) {
-        type = metadata[ "type" ].get<std::string>();
-    } else {
-        spdlog::error( "[HcPageAgent::addAgent] agent does not contain valid type" );
-        return;
-    }
-
-    if ( metadata.contains( "note" ) && metadata[ "note" ].is_string() ) {
-        note = QString( metadata[ "note" ].get<std::string>().c_str() );
-    } else {
-        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain any note" );
-    }
-
-    if ( metadata.contains( "meta" ) && metadata[ "meta" ].is_object() ) {
-        meta = metadata[ "meta" ].get<json>();
-    } else {
-        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta object" );
-        return;
-    }
-
-    if ( meta.contains( "user" ) && meta[ "user" ].is_string() ) {
-        user = QString( meta[ "user" ].get<std::string>().c_str() );
-    } else {
-        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta user" );
-    }
-
-    if ( meta.contains( "host" ) && meta[ "host" ].is_string() ) {
-        host = QString( meta[ "host" ].get<std::string>().c_str() );
-    } else {
-        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta host" );
-    }
-
-    if ( meta.contains( "arch" ) && meta[ "arch" ].is_string() ) {
-        arch = QString( meta[ "arch" ].get<std::string>().c_str() );
-    } else {
-        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta arch" );
-    }
-
-    if ( meta.contains( "local ip" ) && meta[ "local ip" ].is_string() ) {
-        local = QString( meta[ "local ip" ].get<std::string>().c_str() );
-    } else {
-        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta local ip" );
-    }
-
-    if ( meta.contains( "process path" ) && meta[ "process path" ].is_string() ) {
-        path = QString( meta[ "process path" ].get<std::string>().c_str() );
-    } else {
-        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta process path" );
-    }
-
-    if ( meta.contains( "process name" ) && meta[ "process name" ].is_string() ) {
-        process = QString( meta[ "process name" ].get<std::string>().c_str() );
-    } else {
-        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta process name" );
-    }
-
-    if ( meta.contains( "pid" ) && meta[ "pid" ].is_number_integer() ) {
-        pid = QString::number( meta[ "pid" ].get<int>() );
-    } else {
-        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta pid" );
-    }
-
-    if ( meta.contains( "tid" ) && meta[ "tid" ].is_number_integer() ) {
-        tid = QString::number( meta[ "tid" ].get<int>() );
-    } else {
-        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta tid" );
-    }
-
-    if ( meta.contains( "system" ) && meta[ "system" ].is_string() ) {
-        system = QString( meta[ "system" ].get<std::string>().c_str() );
-    } else {
-        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta system" );
-    }
-
-    if ( meta.contains( "last callback" ) && meta[ "last callback" ].is_string() ) {
-        last = QString( meta[ "last callback" ].get<std::string>().c_str() );
-    } else {
-        spdlog::debug( "[HcPageAgent::addAgent] agent does not contain valid meta last" );
-    }
-
-    auto agent = new HcAgent {
-        .uuid = uuid.toStdString(),
-        .type = type,
-        .data = metadata,
-        .last = last,
-        .ui   = {
-            .Uuid        = new HcAgentTableItem( uuid ),
-            .Internal    = new HcAgentTableItem( local ),
-            .Username    = new HcAgentTableItem( user ),
-            .Hostname    = new HcAgentTableItem( host ),
-            .ProcessPath = new HcAgentTableItem( path ),
-            .ProcessName = new HcAgentTableItem( process ),
-            .ProcessId   = new HcAgentTableItem( pid ),
-            .ThreadId    = new HcAgentTableItem( tid ),
-            .Arch        = new HcAgentTableItem( arch ),
-            .System      = new HcAgentTableItem( system ),
-            .Note        = new HcAgentTableItem( note, Qt::NoItemFlags, Qt::AlignVCenter ),
-            .Last        = new HcAgentTableItem( last ),
-        }
-    };
-
-    agent->console = new HcAgentConsole( agent );
-    agent->console->setBottomLabel( QString( "[User: %1] [Process: %2] [Pid: %3] [Tid: %4]" ).arg( user ).arg( path ).arg( pid ).arg( tid ) );
-    agent->console->setInputLabel( ">>>" );
-    agent->console->LabelHeader->setFixedHeight( 0 );
-
-    agent->ui.Uuid->agent        = agent;
-    agent->ui.Internal->agent    = agent;
-    agent->ui.Username->agent    = agent;
-    agent->ui.Hostname->agent    = agent;
-    agent->ui.ProcessPath->agent = agent;
-    agent->ui.ProcessName->agent = agent;
-    agent->ui.ProcessId->agent   = agent;
-    agent->ui.ThreadId->agent    = agent;
-    agent->ui.Arch->agent        = agent;
-    agent->ui.System->agent      = agent;
-    agent->ui.Note->agent        = agent;
-    agent->ui.Last->agent        = agent;
+    const auto row  = AgentTable->rowCount();
+    const auto sort = AgentTable->isSortingEnabled();
 
     //
-    // connect signals and slots
+    // bind the initialized agent to
+    // the console write signals
     //
-    connect( & agent->emitter, & HcAgentEmit::ConsoleWrite, this, []( const QString& uuid, const QString& text ) {
-        if ( const auto agent = Havoc->Agent( uuid.toStdString() ); agent.has_value() ) {
-            agent.value()->console->appendConsole( HcConsole::formatString( text.toStdString() ).c_str() );
+    connect( & agent->ui.signal, & HcAgentSignals::ConsoleWrite, this, []( const QString& uuid, const QString& text ) {
+        if ( const auto _agent = Havoc->Agent( uuid.toStdString() ); _agent.has_value() ) {
+            _agent.value()->console->appendConsole( HcConsole::formatString( text.toStdString() ).c_str() );
         }
     } );
 
@@ -362,36 +224,20 @@ auto HcPageAgent::addAgent(
 
     AgentTable->setRowCount( row + 1 );
     AgentTable->setSortingEnabled( false );
-    AgentTable->setItem( row, 0,  agent->ui.Uuid        );
-    AgentTable->setItem( row, 1,  agent->ui.Internal    );
-    AgentTable->setItem( row, 2,  agent->ui.Username    );
-    AgentTable->setItem( row, 3,  agent->ui.Hostname    );
-    AgentTable->setItem( row, 4,  agent->ui.ProcessName );
-    AgentTable->setItem( row, 5,  agent->ui.ProcessId   );
-    AgentTable->setItem( row, 6,  agent->ui.ThreadId    );
-    AgentTable->setItem( row, 7,  agent->ui.Arch        );
-    AgentTable->setItem( row, 8,  agent->ui.System      );
-    AgentTable->setItem( row, 9,  agent->ui.Last        );
-    AgentTable->setItem( row, 10, agent->ui.Note        );
+    AgentTable->setItem( row, 0,  agent->ui.table.Uuid        );
+    AgentTable->setItem( row, 1,  agent->ui.table.Internal    );
+    AgentTable->setItem( row, 2,  agent->ui.table.Username    );
+    AgentTable->setItem( row, 3,  agent->ui.table.Hostname    );
+    AgentTable->setItem( row, 4,  agent->ui.table.ProcessName );
+    AgentTable->setItem( row, 5,  agent->ui.table.ProcessId   );
+    AgentTable->setItem( row, 6,  agent->ui.table.ThreadId    );
+    AgentTable->setItem( row, 7,  agent->ui.table.Arch        );
+    AgentTable->setItem( row, 8,  agent->ui.table.System      );
+    AgentTable->setItem( row, 9,  agent->ui.table.Last        );
+    AgentTable->setItem( row, 10, agent->ui.table.Note        );
     AgentTable->setSortingEnabled( sort );
 
-    //
-    // if an interface has been registered then assign it to the agent
-    //
-    agent->interface = std::nullopt;
-    if ( auto interface = Havoc->AgentObject( agent->type ) ) {
-        if ( interface.has_value() ) {
-            HcPythonAcquire();
-
-            try {
-                agent->interface = interface.value()( agent->uuid, agent->type, metadata[ "meta" ] );
-            } catch ( py11::error_already_set &eas ) {
-                spdlog::error( "failed to invoke agent interface [uuid: {}] [type: {}]: {}", agent->uuid, agent->type, eas.what() );
-            }
-        }
-    }
-
-    agent->node = AgentGraph->addAgent( agent );
+    agent->ui.node = AgentGraph->addAgent( agent );
 
     AgentDisplayerTargets->setText( QString( "Targets: %1" ).arg( agents.size() ) );   /* TODO: all targets (only show one host)        */
     AgentDisplayerSessions->setText( QString( "Sessions: %1" ).arg( agents.size() ) ); /* TODO: only set current alive beacons/sessions */
@@ -599,7 +445,7 @@ auto HcPageAgent::itemChanged(
     //
     // check if it is the agent item is equal to the note widget
     //
-    if ( agent_item == agent_item->agent->ui.Note ) {
+    if ( agent_item == agent_item->agent->ui.table.Note ) {
         //
         // check if is the note item getting created
         //
@@ -720,10 +566,10 @@ auto HcAgentConsole::inputEnter(
             try {
                 agent->interface.value().attr( "_input_dispatch" )( input );
             } catch ( py11::error_already_set &eas ) {
-                emit agent->emitter.ConsoleWrite( agent->uuid.c_str(), eas.what() );
+                emit agent->ui.signal.ConsoleWrite( agent->uuid.c_str(), eas.what() );
             }
         } else {
-            emit agent->emitter.ConsoleWrite( agent->uuid.c_str(), "[!] No agent script handler registered for this type" );
+            emit agent->ui.signal.ConsoleWrite( agent->uuid.c_str(), "[!] No agent script handler registered for this type" );
         }
     }, Meta, input );
 }

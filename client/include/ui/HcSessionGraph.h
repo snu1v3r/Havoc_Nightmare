@@ -96,6 +96,9 @@ public:
     auto calculateForces() -> void;
     auto advancePosition() -> bool;
 
+    enum { Type = UserType + 1 };
+    int type() const override { return Type; }
+
 protected:
     auto boundingRect(
         void
@@ -293,6 +296,8 @@ public:
 
 private:
     auto mouseMoveEvent( QGraphicsSceneMouseEvent* event ) -> void override;
+    auto contextMenuEvent( QGraphicsSceneContextMenuEvent *event ) -> void override;
+
 };
 
 class HcSessionGraph final : public QGraphicsView

@@ -86,7 +86,7 @@ auto HcAgentConsoleWrite(
     auto agent = Havoc->Agent( uuid );
 
     if ( agent.has_value() ) {
-        emit agent.value()->emitter.ConsoleWrite( uuid.c_str(), content.c_str() );
+        emit agent.value()->ui.signal.ConsoleWrite( uuid.c_str(), content.c_str() );
     }
 }
 

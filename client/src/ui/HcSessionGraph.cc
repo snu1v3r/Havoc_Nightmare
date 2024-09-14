@@ -81,19 +81,19 @@ auto HcSessionGraph::removeAgent(
     //
     // remove the items from the graph
     //
-    scene->removeItem( agent->node );
-    scene->removeItem( agent->node->itemEdge() );
+    scene->removeItem( agent->ui.node );
+    scene->removeItem( agent->ui.node->itemEdge() );
 
     //
     // remove itself from the parent node
     //
-    agent->node->parent()->removePivot( agent->node );
+    agent->ui.node->parent()->removePivot( agent->ui.node );
 
     //
     // remove the node from the lists
     //
     for ( int i = 0; i < _nodes.size(); i++ ) {
-        if ( _nodes[ i ] == agent->node ) {
+        if ( _nodes[ i ] == agent->ui.node ) {
             _nodes.erase( _nodes.begin() + i );
             break;
         }
@@ -402,6 +402,147 @@ auto HcSessionGraphScene::mouseMoveEvent(
         const auto snappedY = round( pos.y() / grid_size ) * grid_size;
 
         item->setPos( snappedX, snappedY );
+    }
+}
+
+auto HcSessionGraphScene::contextMenuEvent(
+    QGraphicsSceneContextMenuEvent *event
+) -> void {
+    auto sessions   = selectedItems();
+    auto menu       = QMenu();
+    auto actions    = Havoc->Actions( HavocClient::ActionObject::ActionAgent );
+    auto agent_type = std::string();
+
+    //
+    // retrieve the list of selected current
+    // items from the graph scene
+    //
+    if ( sessions.empty() ) {
+        //
+        // instead we are just going to retrieve
+        // the current hovered over items
+        //
+        if ( ( sessions = items( event->scenePos() ) ).empty() ) {
+            //
+            // no items have been selected
+            //
+            return QGraphicsScene::contextMenuEvent( event );
+        };
+    }
+
+    //
+    // since there are item selected we
+    // can dispatch and handle the event
+    //
+    menu.setStyleSheet( HavocClient::StyleSheet() );
+    if ( sessions.count() > 1 ) {
+        menu.addAction( QIcon( ":/icons/16px-agent-console" ), "Interact" );
+        menu.addSeparator();
+        menu.addAction( QIcon( ":/icons/16px-blind-white" ), "Hide" );
+        menu.addAction( QIcon( ":/icons/16px-remove" ), "Remove" );
+    } else {
+        //
+        // if a single selected agent item then try
+        // to add the registered actions as well
+        //
+        menu.addAction( QIcon( ":/icons/16px-agent-console" ), "Interact" );
+        menu.addSeparator();
+
+        for ( const auto& _session : sessions ) {
+            if ( ( _session->type() == HcSessionGraphItem::Type ) ) {
+                if ( const auto session = static_cast<HcSessionGraphItem*>( _session );
+                     session->agent()
+                ) {
+                    agent_type = session->agent()->type;
+                    break;
+                }
+            }
+        }
+
+        //
+        // add the registered agent type actions
+        //
+        for ( auto action : actions ) {
+            if ( action->agent.type == agent_type ) {
+                if ( action->icon.empty() ) {
+                    menu.addAction( action->name.c_str() );
+                } else {
+                    menu.addAction( QIcon( action->icon.c_str() ), action->name.c_str() );
+                }
+            }
+        }
+
+        menu.addSeparator();
+        menu.addAction( QIcon( ":/icons/16px-blind-white" ), "Hide" );
+        menu.addAction( QIcon( ":/icons/16px-remove" ), "Remove" );
+    }
+
+    //
+    // check if only the server item has been selected,
+    // if it is the only selected item and abort and do
+    // not show the menu
+    //
+    if ( sessions.count() == 1 ) {
+        auto session = sessions.at( 0 );
+        if ( session->type() == HcSessionGraphItem::Type ) {
+            if ( ! ( ( HcSessionGraphItem* ) session )->agent() ) {
+                return;
+            }
+        } else {
+            return;
+        }
+    }
+
+    //
+    // show menu if everything went well
+    //
+    const auto action = menu.exec( event->screenPos() );
+    if ( ! action ) {
+        return;
+    }
+
+    //
+    // iterate over all selected sessions
+    //
+    for ( const auto& _session : sessions ) {
+        if ( ( _session->type() == HcSessionGraphItem::Type ) ) {
+            const auto session = static_cast<HcSessionGraphItem*>( _session );
+
+            if ( session->agent() ) {
+                spdlog::debug( "session uuid: {}", session->agent()->uuid );
+
+
+                if ( action->text().compare( "Interact" ) == 0 ) {
+                    Havoc->Gui->PageAgent->spawnAgentConsole( session->agent()->uuid );
+                } else if ( action->text().compare( "Remove" ) == 0 ) {
+                    session->agent()->remove();
+                } else if ( action->text().compare( "Hide" ) == 0 ) {
+                    session->agent()->remove();
+                } else {
+                    for ( const auto agent_action : actions ) {
+                        if ( agent_action->name       == action->text().toStdString() &&
+                             agent_action->agent.type == session->agent()->type
+                        ) {
+                            const auto agent = Havoc->Agent( session->agent()->uuid );
+                            if ( agent.has_value() &&
+                                 agent.value()->interface.has_value()
+                            ) {
+                                try {
+                                    HcPythonAcquire();
+
+                                    agent_action->callback( agent.value()->interface.value() );
+                                } catch ( py11::error_already_set& e ) {
+                                    spdlog::error( "failed to execute action callback: {}", e.what() );
+                                }
+                            }
+                            return;
+                        }
+                    }
+
+                    spdlog::debug( "[ERROR] invalid action from selected agent menu" );
+                }
+            }
+        }
     }
 }
 

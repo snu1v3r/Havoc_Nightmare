@@ -25,7 +25,7 @@ public:
     auto setUsed( bool state ) -> void;
 };
 
-class HcMainWindow : public QMainWindow
+class HcMainWindow final : public QMainWindow
 {
     Q_OBJECT
 
@@ -76,7 +76,7 @@ public Q_SLOT:
     ) const -> void;
 
     auto AddAgent(
-        const json& agent
+        const json& metadata
     ) -> void;
 
     auto RemoveAgent(

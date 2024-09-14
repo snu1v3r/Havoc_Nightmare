@@ -9,7 +9,7 @@ struct HcAgent;
 #include <ui/HcPageAgent.h>
 #include <ui/HcSessionGraph.h>
 
-class HcAgentEmit : public QObject {
+class HcAgentSignals final : public QObject {
     Q_OBJECT
 
 signals:
@@ -26,7 +26,7 @@ signals:
 
 struct HcAgent;
 
-class HcAgentTableItem : public QTableWidgetItem {
+class HcAgentTableItem final : public QTableWidgetItem {
 
 public:
     HcAgent* agent  = {};
@@ -34,6 +34,7 @@ public:
 
     explicit HcAgentTableItem(
         const QString&          value,
+        HcAgent*                agent,
         const Qt::ItemFlag      flags = Qt::ItemIsEditable,
         const Qt::AlignmentFlag align = Qt::AlignCenter
     );
@@ -42,29 +43,38 @@ public:
 struct HcAgent {
     std::string                 uuid;
     std::string                 type;
+    std::string                 parent;
     json                        data;
     std::optional<py11::object> interface;
     HcAgentConsole*             console;
     QString                     last;
-    HcSessionGraphItem*         node;
 
     struct {
-        HcAgentTableItem* Uuid;
-        HcAgentTableItem* Internal;
-        HcAgentTableItem* Username;
-        HcAgentTableItem* Hostname;
-        HcAgentTableItem* ProcessPath;
-        HcAgentTableItem* ProcessName;
-        HcAgentTableItem* ProcessId;
-        HcAgentTableItem* ThreadId;
-        HcAgentTableItem* Arch;
-        HcAgentTableItem* System;
-        HcAgentTableItem* Note;
-        HcAgentTableItem* Last;
+        HcSessionGraphItem* node;
+
+        struct {
+            HcAgentTableItem* Uuid;
+            HcAgentTableItem* Internal;
+            HcAgentTableItem* Username;
+            HcAgentTableItem* Hostname;
+            HcAgentTableItem* ProcessPath;
+            HcAgentTableItem* ProcessName;
+            HcAgentTableItem* ProcessId;
+            HcAgentTableItem* ThreadId;
+            HcAgentTableItem* Arch;
+            HcAgentTableItem* System;
+            HcAgentTableItem* Note;
+            HcAgentTableItem* Last;
+        } table;
+
+        HcAgentSignals signal = {};
     } ui;
 
-    HcAgentEmit emitter = {};
+    explicit HcAgent(
+        const json& metadata
+    );
 
+    auto initialize() -> bool;
     auto remove() -> void;
     auto hide() -> void;
 };

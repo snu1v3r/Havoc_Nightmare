@@ -324,7 +324,7 @@ auto HavocClient::eventDispatch(
                     // catch exception and print it to the agent
                     // console as it was running under its context
                     //
-                    emit agent.value()->emitter.ConsoleWrite( agent.value()->uuid.c_str(), eas.what() );
+                    emit agent.value()->ui.signal.ConsoleWrite( agent.value()->uuid.c_str(), eas.what() );
                 }
             } else {
                 spdlog::error(
@@ -387,11 +387,10 @@ auto HavocClient::eventDispatch(
 
             agent->last = QString( time.c_str() );
 
-
             //
             // update the pulsation inside the graph
             //
-            agent->node->itemEdge()->startPulsation();
+            agent->ui.node->itemEdge()->startPulsation();
         } else {
             spdlog::error( "invalid agent heartbeat: \"uuid\" agent not found" );
         }
@@ -488,9 +487,9 @@ auto HavocClient::eventDispatch(
         //
         if ( auto agent = Agent( uuid ) ) {
             if ( agent.has_value() ) {
-                agent.value()->ui.Note->ignore = true;
-                agent.value()->ui.Note->setText( note.c_str() );
-                agent.value()->ui.Note->ignore = false;
+                agent.value()->ui.table.Note->ignore = true;
+                agent.value()->ui.table.Note->setText( note.c_str() );
+                agent.value()->ui.table.Note->ignore = false;
             } else {
                 spdlog::error( "invalid agent note: \"uuid\" agent does not have any value" );
             }
