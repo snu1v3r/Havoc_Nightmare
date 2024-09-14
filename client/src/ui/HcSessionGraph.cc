@@ -73,11 +73,13 @@ auto HcSessionGraph::addAgent(
 auto HcSessionGraph::removeAgent(
     const HcAgent* agent
 ) -> void {
+    spdlog::debug( "[HcSessionGraph::removeAgent] {}", agent->uuid );
     //
     // remove the items from the graph
     //
     _scene->removeItem( agent->ui.node );
     _scene->removeItem( agent->ui.node->itemEdge() );
+    _scene->removeItem( agent->ui.node->itemInfo() );
 
     //
     // remove itself from the parent node
@@ -595,7 +597,9 @@ HcSessionGraphItem::HcSessionGraphItem(
     }
 }
 
-HcSessionGraphItem::~HcSessionGraphItem() = default;
+HcSessionGraphItem::~HcSessionGraphItem() {
+    scene()->removeItem( info );
+};
 
 auto HcSessionGraphItem::graph(
     void
@@ -657,7 +661,7 @@ auto HcSessionGraphItem::addEdge(
 
 auto HcSessionGraphItem::adjust() -> void
 {
-    for ( const auto _edge : edges) {
+    for ( const auto _edge : edges ) {
         _edge->adjust();
     }
 }
@@ -672,6 +676,11 @@ auto HcSessionGraphItem::itemEdge(
     void
 ) -> HcSessionGraphEdge* {
     return edge;
+}
+
+auto HcSessionGraphItem::itemInfo() -> HcSessionGraphItemInfo*
+{
+    return info;
 }
 
 auto HcSessionGraphItem::boundingRect(

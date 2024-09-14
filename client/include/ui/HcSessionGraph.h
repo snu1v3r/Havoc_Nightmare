@@ -111,6 +111,7 @@ public:
     ) -> void;
 
     auto itemEdge() -> HcSessionGraphEdge*;
+    auto itemInfo() -> HcSessionGraphItemInfo*;
 
     auto calculateForces() -> void;
     auto advancePosition() -> bool;

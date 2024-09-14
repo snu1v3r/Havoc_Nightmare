@@ -521,12 +521,17 @@ auto HcPageAgent::removeAgent(
     if ( agent ) {
         HcPythonAcquire();
 
-        for ( const auto dock : DockManager->dockWidgetsMap() ) {
-            if ( dock->widget() == agent->console ) {
-                dock->closeDockWidget();
-                DockManager->removeDockWidget( dock );
-                delete dock;
-                return;
+        ads::CDockWidget* dock = nullptr;
+        for ( const auto _dock : DockManager->dockWidgetsMap() ) {
+            if ( _dock->widget() == agent->console ) {
+                DockManager->removeDockWidget( _dock );
+
+                //
+                // TODO: looks like this causes the client to crash. investigate!!
+                //
+                // _dock->closeDockWidget();
+                // delete _dock;
+                break;
             }
         }
 
