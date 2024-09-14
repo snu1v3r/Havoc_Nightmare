@@ -4,11 +4,11 @@
 HcSessionGraph::HcSessionGraph(
     QWidget* parent
 ) : QGraphicsView( parent ) {
-    scene = new HcSessionGraphScene( 10, this );
-    scene->setItemIndexMethod( QGraphicsScene::BspTreeIndex );
+    _scene = new HcSessionGraphScene( 10, this );
+    _scene->setItemIndexMethod( QGraphicsScene::BspTreeIndex );
 
     setDragMode( RubberBandDrag );
-    setScene( scene );
+    setScene( _scene );
     setCacheMode( CacheBackground );
     setViewportUpdateMode( BoundingRectViewportUpdate );
     setTransformationAnchor( AnchorUnderMouse );
@@ -17,22 +17,19 @@ HcSessionGraph::HcSessionGraph(
 
     box_layout = new QGridLayout( this );
     _settings  = new HcSessionGraphSetting( this );
+    server     = new HcSessionGraphItem( nullptr, this );
 
     box_layout->setAlignment( Qt::AlignLeft | Qt::AlignTop );
     box_layout->addWidget( _settings );
 
-    server = new HcSessionGraphItem;
-
-    scene->addItem( server );
-
-    server->setGraph( this );
+    _scene->addItem( server );
     server->setPos( 100, 50 );
 
     _nodes.push_back( server );
 }
 
 HcSessionGraph::~HcSessionGraph() {
-    delete scene;
+    delete _scene;
 }
 
 auto HcSessionGraph::scaleView(
@@ -53,10 +50,8 @@ auto HcSessionGraph::scaleView(
 auto HcSessionGraph::addAgent(
     HcAgent *agent
 ) -> HcSessionGraphItem* {
-    const auto item = new HcSessionGraphItem;
+    const auto item = new HcSessionGraphItem( agent, this );
 
-    item->setAgent( agent );
-    item->setGraph( this );
     item->setItemEdge( new HcSessionGraphEdge( server, item, Havoc->Theme.getGreen() ) );
 
     //
@@ -66,8 +61,8 @@ auto HcSessionGraph::addAgent(
 
     server->addPivot( item );
 
-    scene->addItem( item );
-    scene->addItem( item->itemEdge() );
+    _scene->addItem( item );
+    _scene->addItem( item->itemEdge() );
     _nodes.push_back( item );
 
     HcGraphLayoutTree::draw( server );
@@ -81,8 +76,8 @@ auto HcSessionGraph::removeAgent(
     //
     // remove the items from the graph
     //
-    scene->removeItem( agent->ui.node );
-    scene->removeItem( agent->ui.node->itemEdge() );
+    _scene->removeItem( agent->ui.node );
+    _scene->removeItem( agent->ui.node->itemEdge() );
 
     //
     // remove itself from the parent node
@@ -151,7 +146,7 @@ auto HcSessionGraph::keyPressEvent(
 void HcSessionGraph::resizeEvent(
     QResizeEvent* event
 ) {
-    scene->setSceneRect( 0, 0, event->size().width(), event->size().height() );
+    _scene->setSceneRect( 0, 0, event->size().width(), event->size().height() );
 
     QGraphicsView::resizeEvent( event );
 }
@@ -546,10 +541,40 @@ auto HcSessionGraphScene::contextMenuEvent(
 }
 
 //
+// HcSessionGraphItemInfo
+//
+
+HcSessionGraphItemInfo::HcSessionGraphItemInfo(
+    const QString& text_top,
+    const QString& text_bottom
+) : text_top( text_top ), text_bottom( text_bottom ) {
+
+}
+
+HcSessionGraphItemInfo::~HcSessionGraphItemInfo() = default;
+
+auto HcSessionGraphItemInfo::boundingRect() const -> QRectF {
+    return QRectF( -40, -50, text_bottom.length() * 8, 45 );
+}
+
+auto HcSessionGraphItemInfo::paint(
+    QPainter*                       painter,
+    const QStyleOptionGraphicsItem* option,
+    QWidget*                        widget
+) -> void {
+    painter->setPen( Havoc->Theme.getForeground() );
+    painter->drawText( boundingRect(), Qt::AlignCenter | Qt::AlignTop,    text_top    );
+    painter->drawText( boundingRect(), Qt::AlignCenter | Qt::AlignBottom, text_bottom );
+}
+
+//
 // HcSessionGraphItem
 //
 
-HcSessionGraphItem::HcSessionGraphItem() {
+HcSessionGraphItem::HcSessionGraphItem(
+    HcAgent*        agent,
+    HcSessionGraph* graph
+) : _agent( agent ), _graph( graph ) {
     setFlag( ItemIsMovable );
     setFlag( ItemSendsGeometryChanges );
     setFlag( ItemIsSelectable );
@@ -558,26 +583,24 @@ HcSessionGraphItem::HcSessionGraphItem() {
     setZValue( -1 );
 
     rect = QRectF( -40, -50, 80, 80 );
+
+    if ( agent ) {
+        info = new HcSessionGraphItemInfo( agent->uuid.c_str(), std::format(
+            "{} @ {}\\{}",
+            agent->ui.table.Username->text().toStdString(),
+            agent->ui.table.ProcessName->text().toStdString(),
+            agent->ui.table.ProcessId->text().toStdString()
+        ).c_str() );
+        _graph->scene()->addItem( info );
+    }
 }
 
 HcSessionGraphItem::~HcSessionGraphItem() = default;
-
-auto HcSessionGraphItem::setGraph(
-    HcSessionGraph* graph
-) -> void {
-    _graph = graph;
-}
 
 auto HcSessionGraphItem::graph(
     void
 ) const -> HcSessionGraph* {
     return _graph;
-}
-
-auto HcSessionGraphItem::setAgent(
-    HcAgent* agent
-) -> void {
-    _agent = agent;
 }
 
 auto HcSessionGraphItem::agent(
@@ -704,14 +727,17 @@ auto HcSessionGraphItem::itemChange(
     GraphicsItemChange change,
     const QVariant&    value
 ) -> QVariant {
-    switch ( change )
-    {
-        case ItemPositionChange: {
-            adjust();
-            graph()->itemMoved();
-        }
 
-        default: break;
+    if ( change == ItemPositionChange ) {
+        adjust();
+        graph()->itemMoved();
+
+        if ( info ) {
+            info->setPos( QPointF(
+                value.toPointF().x() + ( boundingRect().width() - info->boundingRect().width() ) / 2,
+                ( value.toPointF().y() + boundingRect().height() ) - 10
+            ) );
+        }
     }
 
     return QGraphicsItem::itemChange( change, value );

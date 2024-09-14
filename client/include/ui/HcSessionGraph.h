@@ -14,14 +14,37 @@
 
 class HcSessionGraphSetting;
 class HcSessionGraphItem;
+class HcSessionGraphItemInfo;
 class HcSessionGraphEdge;
 class HcSessionGraph;
 class HcGraphItemSignal;
 
-
 //
 // HcSessionGraphItem
 //
+
+class HcSessionGraphItemInfo final : public QGraphicsItem
+{
+    QString text_top    = {};
+    QString text_bottom = {};
+public:
+    explicit HcSessionGraphItemInfo(
+        const QString& text_top,
+        const QString& text_bottom
+    );
+    ~HcSessionGraphItemInfo();
+
+    auto boundingRect(
+        void
+    ) const -> QRectF override;
+
+protected:
+    auto paint(
+        QPainter*                       painter,
+        const QStyleOptionGraphicsItem* option,
+        QWidget*                        widget
+    ) -> void override;
+};
 
 class HcSessionGraphItem final : public QGraphicsItem
 {
@@ -33,6 +56,7 @@ class HcSessionGraphItem final : public QGraphicsItem
     HcSessionGraphEdge*                edge      = {};
     QRectF                             rect      = {};
     std::vector<HcSessionGraphEdge*>   edges     = {};
+    HcSessionGraphItemInfo*            info      = {};
 
 public:
     HcSessionGraphItem* Thread   = nullptr; // For extreme left or right nodes, used to provide a successor node in a contour.
@@ -42,20 +66,15 @@ public:
     double              Shift    = 0;       // Amount to move subtrees apart to avoid overlaps.
     double              Change   = 0;       // Rate of change in shift amount, used to evenly distribute shifts among siblings.
 
-    explicit HcSessionGraphItem();
-    ~HcSessionGraphItem() override;
-
-    auto setGraph(
+    explicit HcSessionGraphItem(
+        HcAgent*        agent,
         HcSessionGraph* graph
-    ) -> void;
+    );
+    ~HcSessionGraphItem() override;
 
     auto graph(
         void
     ) const -> HcSessionGraph*;
-
-    auto setAgent(
-        HcAgent* agent
-    ) -> void;
 
     auto agent(
         void
@@ -302,7 +321,7 @@ class HcSessionGraph final : public QGraphicsView
 
     std::vector<HcSessionGraphItem*> _nodes     = {};
     HcSessionGraphSetting*           _settings  = {};
-    HcSessionGraphScene*             scene      = {};
+    HcSessionGraphScene*             _scene      = {};
     HcSessionGraphItem*              server     = {};
     QGridLayout*                     box_layout = {};
     int                              timer_id   = 0;
