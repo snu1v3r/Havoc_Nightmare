@@ -75,7 +75,7 @@ func (t *Teamserver) Start() {
 			var ext *plugin.Plugin
 
 			if ext, err = t.plugins.RegisterPlugin(server.Plugins[i]); err != nil {
-				logger.Info("%s failed to load plugin: %v", colors.BoldBlue("[plugin]"), colors.Red(err))
+				logger.Info("%s failed to load plugin %s: %v", colors.BoldBlue("[plugin]"), server.Plugins[i], colors.Red(err))
 			}
 
 			if ext != nil {

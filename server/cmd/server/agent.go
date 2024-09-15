@@ -303,6 +303,69 @@ func (t *Teamserver) AgentProcessRequest(implant string, ctx map[string]any, req
 	return nil, errors.New("agent to process request not found")
 }
 
+// AgentRegisterCommand
+// registers a command from an external plugin to be available for the
+// specified implant type.
+//
+// Useful if the need arises to register a callback command to be processed
+// such as SMB pivots, file downloading, long-running tasks, etc.
+func (t *Teamserver) AgentRegisterCommand(implant string, command func(string, []byte) (bool, error)) {
+	var (
+		val  any
+		list []AgentCommand
+		ok   bool
+	)
+
+	// get list of commands for specific implant type in
+	// case some have been registered previously already
+	if val, ok = t.commands.Load(implant); ok {
+		list = val.([]AgentCommand)
+	}
+
+	// store the command to implant type list
+	t.commands.Store(implant, append(list, command))
+}
+
+// AgentCommand
+// will try to process the given data to any registered plugins that is
+// able to process the data with the current specified implant type
+func (t *Teamserver) AgentCommand(uuid string, context any, data []byte) error {
+	var (
+		valid   bool
+		err     error
+		val     any
+		ok      bool
+		list    []AgentCommand
+		implant string
+	)
+
+	// get the type of the agent uuid
+	if implant, err = t.AgentType(uuid); err != nil {
+		return err
+	}
+
+	// get list of commands for specific implant type in
+	// case some have been registered previously already
+	if val, ok = t.commands.Load(implant); ok {
+		list = val.([]AgentCommand)
+
+		for _, command := range list {
+			// process given data to the command and check if
+			// the command says it's valid for its use case
+			valid, err = command(uuid, data)
+			if !valid {
+				continue
+			}
+
+			return err
+		}
+	}
+
+	// no command registered for this implant
+	// type and command request drop it
+	return nil
+}
+
 func (t *Teamserver) AgentGenerate(implant string, config map[string]any) (string, []byte, map[string]any, error) {
 	if t.AgentTypeExist(implant) {
 		return t.plugins.AgentGenerate(implant, config)

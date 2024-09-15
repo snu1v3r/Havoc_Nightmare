@@ -16,22 +16,6 @@ type HavocUser struct {
 	socket   *websocket.Conn
 }
 
-type HavocAgent struct {
-	// uuid this is the identifier
-	// for the teamserver to know
-	uuid string
-
-	// context member contains the context of the agent
-	// like to what listener it is associated with and
-	// other things that is important to the teamserver
-	// to know, like: parent agent, listener name, etc.
-	context map[string]any
-
-	// metadata contains the metadata of the agent
-	// like hostname, username, process name and id, etc.
-	metadata map[string]any
-}
-
 type serverFlags struct {
 	Profile string
 	Debug   bool
@@ -55,6 +39,8 @@ type Listener struct {
 	Port     string `json:"port"`
 	Path     string `json:"path"`
 }
+
+type AgentCommand func(uuid string, data []byte) (bool, error)
 
 type Agent struct {
 	uuid string
@@ -85,9 +71,18 @@ type Teamserver struct {
 	clients sync.Map
 	plugins *plugin.System
 
+	// registered protocol types and running listeners
 	protocols []Handler  // available handlers/listeners to use
 	listener  []Listener // started listeners
 
-	payloads []Handler // available payloads
-	agents   sync.Map  // current connected agents
+	// registered implant types and agent sessions
+	payloads []Handler // available payload types
+	agents   sync.Map  // current connected agent sessions
+
+	// registered agent commands by external plugins and protocols
+	// which allows to extend the implants commands to add additional
+	// features and ways to process callbacks
+	//
+	// map[string][]func([]byte) (bool, error)
+	commands sync.Map
 }

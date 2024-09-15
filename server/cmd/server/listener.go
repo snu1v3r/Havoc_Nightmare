@@ -10,10 +10,10 @@ import (
 	"os"
 )
 
-// ListenerRegister
+// ListenerRegisterType
 // register a listener to the server and
 // notify clients to a newly available handler.
-func (t *Teamserver) ListenerRegister(name string, listener map[string]any) error {
+func (t *Teamserver) ListenerRegisterType(name string, listener map[string]any) error {
 	var (
 		protocol Handler
 		data     []byte

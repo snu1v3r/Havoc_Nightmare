@@ -27,7 +27,7 @@ type HavocInterface interface {
 
 	Version() map[string]string
 
-	ListenerRegister(name string, listener map[string]any) error
+	ListenerRegisterType(name string, listener map[string]any) error
 	ListenerProtocol(name string) (string, error)
 
 	AgentRegisterType(name string, agent map[string]any) error
@@ -328,7 +328,7 @@ func (system *System) interactPlugin(extension *Plugin) error {
 	case TypeListener:
 
 		extension.Data = extension.ListenerRegister()
-		if err := system.havoc.ListenerRegister(extension.Name, extension.Data); err != nil {
+		if err := system.havoc.ListenerRegisterType(extension.Name, extension.Data); err != nil {
 			return err
 		}
 
