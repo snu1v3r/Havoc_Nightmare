@@ -40,7 +40,7 @@ type Listener struct {
 	Path     string `json:"path"`
 }
 
-type AgentCommand func(uuid string, data []byte) (bool, error)
+type AgentCommand func(uuid string, context any, data []byte) (bool, error)
 
 type Agent struct {
 	uuid string

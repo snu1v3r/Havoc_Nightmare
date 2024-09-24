@@ -77,6 +77,16 @@ HcListenerDialog::HcListenerDialog(
     QMetaObject::connectSlotsByName( this );
 }
 
+HcListenerDialog::~HcListenerDialog() {
+    HcPythonAcquire();
+
+    for ( auto& protocol : Protocols ) {
+        protocol.instance.dec_ref();
+
+        delete protocol.widget;
+    }
+}
+
 auto HcListenerDialog::retranslateUi() -> void {
     setStyleSheet( Havoc->StyleSheet() );
     setWindowTitle( "Listener" );
@@ -219,12 +229,12 @@ auto HcListenerDialog::AddProtocol(
 
     auto protocol = Protocol {
         .name   = name,
-        .widget = new QWidget
+        .widget = new QWidget,
     };
 
     try {
         protocol.instance = object( U_PTR( protocol.widget ), name );
-        protocol.instance.attr( "_hc_main" )();
+        auto _ = protocol.instance.attr( "_hc_main" )();
     } catch ( py11::error_already_set &eas ) {
         Helper::MessageBox(
             QMessageBox::Icon::Critical,
@@ -254,7 +264,7 @@ auto HcListenerDialog::setEditingListener(
     try {
         HcPythonAcquire();
 
-        getCurrentProtocol().instance.attr( "edit" )( config );
+        auto _ = getCurrentProtocol().instance.attr( "edit" )( config );
     } catch ( py11::error_already_set& e ) {
         spdlog::debug( "failed to execute edit method of listener: \n{}", e.what() );
         Helper::MessageBox(

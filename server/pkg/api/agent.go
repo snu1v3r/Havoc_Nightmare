@@ -124,7 +124,6 @@ func (api *ServerApi) agentExecute(ctx *gin.Context) {
 	response, err = api.havoc.AgentExecute(uuid, data, wait)
 	if err != nil {
 		logger.DebugError("Failed to execute agent command: %v", err)
-		err = fmt.Errorf("failed to execute command: %v", err)
 		goto ERROR
 	}
 

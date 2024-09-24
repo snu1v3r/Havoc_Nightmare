@@ -23,9 +23,9 @@ func (*Teamserver) LogPanic(fmt string, args ...any) {
 }
 
 func (*Teamserver) LogDebug(fmt string, args ...any) {
-	logger.Debug(fmt, args...)
+	logger.Log.Debug(fmt, args...)
 }
 
 func (*Teamserver) LogDbgError(fmt string, args ...any) {
-	logger.DebugError(fmt, args...)
+	logger.Log.DebugError(fmt, args...)
 }

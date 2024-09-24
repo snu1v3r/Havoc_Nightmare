@@ -43,7 +43,6 @@ public:
     HcSessionGraph*    AgentGraph             = {};
     QLabel*            AgentDisplayerElevated = {};
     QLabel*            AgentDisplayerSessions = {};
-    QLabel*            AgentDisplayerTargets  = {};
     QLabel*            AgentDisplayerPivots   = {};
     QToolButton*       AgentActionButton      = {};
     QMenu*             AgentActionMenu        = {};
@@ -63,7 +62,9 @@ public:
     QTableWidgetItem*  TitleNote              = {};
     QTableWidgetItem*  TitleLastCallback      = {};
 
-    std::vector<HcAgent*> agents = {};
+    std::vector<HcAgent*> agents   = {};
+    int                   pivots   = {};
+    int                   elevated = {};
 
     explicit HcPageAgent(QWidget* parent = nullptr );
     ~HcPageAgent();

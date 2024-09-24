@@ -6,8 +6,6 @@ import (
 	"plugin"
 	"reflect"
 	"sync"
-
-	"Havoc/pkg/utils"
 )
 
 const (
@@ -193,9 +191,22 @@ func (system *System) AddPlugin(register map[string]any, inter any) (*Plugin, er
 	}
 
 	// add the ext to the sync map
-	system.loaded.Store(utils.GenerateID(32), ext)
+	system.loaded.Store(ext.Name, ext)
 
 	return ext, nil
+}
+
+func (system *System) Plugin(name string) (*Plugin, error) {
+	var (
+		val any
+		ok  bool
+	)
+
+	if val, ok = system.loaded.Load(name); ok {
+		return val.(*Plugin), nil
+	}
+
+	return nil, fmt.Errorf("plugin not found: %v", name)
 }
 
 // CheckAndInsertInterface
@@ -211,32 +222,28 @@ func (system *System) CheckAndInsertInterface(extension *Plugin, inter any) erro
 	switch extension.Type {
 	case TypeAgent:
 
-		// sanity check if the method exist
+		// sanity check if the agent methods exist
+
 		if _, ok = reflection.MethodByName("AgentRegister"); !ok {
 			return fmt.Errorf("AgentRegister not found")
 		}
 
-		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("AgentGenerate"); !ok {
 			return fmt.Errorf("AgentGenerate not found")
 		}
 
-		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("AgentRestore"); !ok {
 			return fmt.Errorf("AgentRestore not found")
 		}
 
-		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("AgentExecute"); !ok {
 			return fmt.Errorf("AgentExecute not found")
 		}
 
-		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("AgentProcess"); !ok {
 			return fmt.Errorf("AgentProcess not found")
 		}
 
-		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("AgentGet"); !ok {
 			return fmt.Errorf("AgentGet not found")
 		}
@@ -249,47 +256,40 @@ func (system *System) CheckAndInsertInterface(extension *Plugin, inter any) erro
 
 	case TypeListener:
 
-		// sanity check if the method exist
+		// sanity check if the listener methods exist
+
 		if _, ok = reflection.MethodByName("ListenerRegister"); !ok {
 			return fmt.Errorf("ListenerRegister not found")
 		}
 
-		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("ListenerStart"); !ok {
 			return fmt.Errorf("ListenerStart not found")
 		}
 
-		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("ListenerEdit"); !ok {
 			return fmt.Errorf("ListenerEdit not found")
 		}
 
-		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("ListenerRestart"); !ok {
 			return fmt.Errorf("ListenerRestart not found")
 		}
 
-		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("ListenerRestore"); !ok {
 			return fmt.Errorf("ListenerRestore not found")
 		}
 
-		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("ListenerRemove"); !ok {
 			return fmt.Errorf("ListenerRemove not found")
 		}
 
-		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("ListenerStop"); !ok {
 			return fmt.Errorf("ListenerStop not found")
 		}
 
-		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("ListenerEvent"); !ok {
 			return fmt.Errorf("ListenerEvent not found")
 		}
 
-		// sanity check if the method exist
 		if _, ok = reflection.MethodByName("ListenerConfig"); !ok {
 			return fmt.Errorf("ListenerConfig not found")
 		}

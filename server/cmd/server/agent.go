@@ -309,7 +309,7 @@ func (t *Teamserver) AgentProcessRequest(implant string, ctx map[string]any, req
 //
 // Useful if the need arises to register a callback command to be processed
 // such as SMB pivots, file downloading, long-running tasks, etc.
-func (t *Teamserver) AgentRegisterCommand(implant string, command func(string, []byte) (bool, error)) {
+func (t *Teamserver) AgentRegisterCommand(implant string, command func(string, any, []byte) (bool, error)) {
 	var (
 		val  any
 		list []AgentCommand
@@ -352,7 +352,7 @@ func (t *Teamserver) AgentCommand(uuid string, context any, data []byte) error {
 		for _, command := range list {
 			// process given data to the command and check if
 			// the command says it's valid for its use case
-			valid, err = command(uuid, data)
+			valid, err = command(uuid, context, data)
 			if !valid {
 				continue
 			}

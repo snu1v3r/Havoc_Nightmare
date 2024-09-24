@@ -50,6 +50,8 @@ public:
         const QString& editing = ""
     );
 
+    ~HcListenerDialog();
+
     auto getCurrentProtocol() -> Protocol;
     auto getCloseState() -> ListenerState;
     auto save() -> void;

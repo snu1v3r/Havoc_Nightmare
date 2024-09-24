@@ -145,6 +145,7 @@ auto HcAgentExecute(
     auto request  = json();
     auto result   = httplib::Result();
     auto response = json();
+    auto error    = std::string();
 
     //
     // build request that is going to be
@@ -165,19 +166,36 @@ auto HcAgentExecute(
         //
         if ( result->status != 200 ) {
             spdlog::debug( "failed to send request: status code {}", result->status );
-            return json {
-                    { "error", "failed to send request" }
+
+            //
+            // check for emtpy request
+            //
+            if ( ! result->body.empty() ) {
+                if ( ( response = json::parse( result->body ) ).is_discarded() ) {
+                    response[ "error" ] = "failed to parse response";
+                };
+
+                if ( response[ "error" ].is_string() ) {
+                    return json {
+                        { "error", response[ "error" ].get<std::string>() }
+                    };
+                };
             };
-        }
+
+            return json {
+                { "error", "failed to send request" }
+            };
+        };
+
         //
         // check for emtpy request
         //
         if ( ! result->body.empty() ) {
             if ( ( response = json::parse( result->body ) ).is_discarded() ) {
                 response[ "error" ] = "failed to parse response";
-            }
-        }
-    }
+            };
+        };
+    };
 
     return response;
 }

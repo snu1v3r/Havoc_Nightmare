@@ -95,10 +95,6 @@ HcPageAgent::HcPageAgent(
     AgentDisplayerSessions->setObjectName( "LabelDisplaySessions" );
     AgentDisplayerSessions->setProperty( "HcLabelDisplay", "true" );
 
-    AgentDisplayerTargets = new QLabel( this );
-    AgentDisplayerTargets->setObjectName( "AgentDisplayTargets" );
-    AgentDisplayerTargets->setProperty( "HcLabelDisplay", "true" );
-
     AgentDisplayerPivots = new QLabel( this );
     AgentDisplayerPivots->setObjectName( "AgentDisplayPivots" );
     AgentDisplayerPivots->setProperty( "HcLabelDisplay", "true" );
@@ -132,13 +128,12 @@ HcPageAgent::HcPageAgent(
     connect( AgentActionButton, &QToolButton::triggered, this, &HcPageAgent::actionTriggered );
     connect( AgentTable, &QTableWidget::itemChanged, this, &HcPageAgent::itemChanged );
 
-    gridLayout->addWidget( AgentDisplayerSessions, 0, 1, 1, 1 );
-    gridLayout->addWidget( AgentDisplayerTargets, 0, 0, 1, 1 );
-    gridLayout->addWidget( AgentDisplayerPivots, 0, 2, 1, 1 );
-    gridLayout->addWidget( AgentDisplayerElevated, 0, 3, 1, 1 );
-    gridLayout->addWidget( AgentActionButton, 0, 5, 1, 1 );
-    gridLayout->addWidget( DockManager, 1, 0, 1, 7 );
-    gridLayout->addItem( horizontalSpacer, 0, 4, 1, 1 );
+    gridLayout->addWidget( AgentDisplayerSessions, 0, 0, 1, 1 );
+    gridLayout->addWidget( AgentDisplayerPivots,   0, 1, 1, 1 );
+    gridLayout->addWidget( AgentDisplayerElevated, 0, 2, 1, 1 );
+    gridLayout->addItem( horizontalSpacer,         0, 3, 1, 1 );
+    gridLayout->addWidget( AgentActionButton,      0, 4, 1, 1 );
+    gridLayout->addWidget( DockManager,            1, 0, 1, 7 );
 
     retranslateUi();
 
@@ -152,7 +147,6 @@ auto HcPageAgent::retranslateUi() -> void {
 
     AgentDisplayerElevated->setText( "Elevated: 0" );
     AgentDisplayerSessions->setText( "Sessions: 0" );
-    AgentDisplayerTargets->setText( "Targets: 0" );
     AgentDisplayerPivots->setText( "Pivots: 0" );
 }
 
@@ -240,9 +234,12 @@ auto HcPageAgent::addAgent(
 
     agent->ui.node = AgentGraph->addAgent( agent );
 
-    AgentDisplayerTargets->setText( QString( "Targets: %1" ).arg( agents.size() ) );   /* TODO: all targets (only show one host)        */
-    AgentDisplayerSessions->setText( QString( "Sessions: %1" ).arg( agents.size() ) ); /* TODO: only set current alive beacons/sessions */
-    AgentDisplayerPivots->setText( "Pivots: 0" );
+    if ( ! agent->parent.empty() ) {
+        pivots++;
+    }
+
+    AgentDisplayerSessions->setText( QString( "Sessions: %1" ).arg( agents.size() ) );
+    AgentDisplayerPivots->setText( QString( "Pivots: %1" ).arg( pivots ) );
     AgentDisplayerElevated->setText( "Elevated: 0" );
 }
 
@@ -490,7 +487,7 @@ auto HcPageAgent::removeAgent(
 ) -> void {
     HcAgent* agent     = {};
     auto     item_uuid = std::string();
-
+    auto     is_pivot  = false;
     //
     // remove the agent from
     // the table ui widget entry
@@ -521,6 +518,8 @@ auto HcPageAgent::removeAgent(
     if ( agent ) {
         HcPythonAcquire();
 
+        is_pivot = ! agent->parent.empty();
+
         for ( const auto dock : DockManager->dockWidgetsMap() ) {
             if ( dock->widget() == agent->console ) {
                 DockManager->removeDockWidget( dock );
@@ -542,8 +541,8 @@ auto HcPageAgent::removeAgent(
         delete agent;
     }
 
-    AgentDisplayerTargets->setText( QString( "Targets: %1" ).arg( agents.size() ) );   /* TODO: all targets (only show one host)        */
     AgentDisplayerSessions->setText( QString( "Sessions: %1" ).arg( agents.size() ) ); /* TODO: only set current alive beacons/sessions */
+    AgentDisplayerPivots->setText( QString( "Pivots: %1" ).arg( is_pivot ? --pivots : pivots ) ); /* TODO: only set current alive beacons/sessions */
 }
 
 HcAgentConsole::HcAgentConsole(

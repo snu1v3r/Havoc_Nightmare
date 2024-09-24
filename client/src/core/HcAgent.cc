@@ -32,10 +32,6 @@ auto HcAgent::initialize() -> bool {
         return false;
     }
 
-    if ( data.contains( "parent" ) && data[ "parent" ].is_string() ) {
-        parent = data[ "type" ].get<std::string>();
-    }
-
     if ( data.contains( "note" ) && data[ "note" ].is_string() ) {
         note = QString( data[ "note" ].get<std::string>().c_str() );
     } else {
@@ -47,6 +43,12 @@ auto HcAgent::initialize() -> bool {
     } else {
         spdlog::debug( "[HcAgent::parse] agent does not contain valid meta object" );
         return false;
+    }
+
+    if ( meta.contains( "parent" ) && meta[ "parent" ].is_string() ) {
+        parent = meta[ "parent" ].get<std::string>();
+    } else {
+        spdlog::debug( "{} has no parent (is direct connection)", uuid );
     }
 
     if ( meta.contains( "user" ) && meta[ "user" ].is_string() ) {

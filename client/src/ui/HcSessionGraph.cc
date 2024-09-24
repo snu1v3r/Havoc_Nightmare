@@ -52,14 +52,23 @@ auto HcSessionGraph::addAgent(
 ) -> HcSessionGraphItem* {
     const auto item = new HcSessionGraphItem( agent, this );
 
-    item->setItemEdge( new HcSessionGraphEdge( server, item, Havoc->Theme.getGreen() ) );
+    if ( agent->parent.empty() ) {
+        item->setItemEdge( new HcSessionGraphEdge( server, item, Havoc->Theme.getGreen() ) );
+        item->addParent( server );
 
-    //
-    // TODO: check if its an pivot agent or direct first
-    //
-    item->addParent( server );
+        server->addPivot( item );
+    } else {
+        if ( const auto agent_parent = Havoc->Agent( agent->parent ); agent_parent.has_value() ) {
+            const auto node = agent_parent.value()->ui.node;
 
-    server->addPivot( item );
+            item->setItemEdge( new HcSessionGraphEdge( node, item, Havoc->Theme.getPurple() ) );
+            item->addParent( node );
+
+            node->addPivot( item );
+        } else {
+            spdlog::debug( "failed to add agent {}: parent has not been found or registered {}", agent->uuid, agent->parent );
+        }
+    }
 
     _scene->addItem( item );
     _scene->addItem( item->itemEdge() );
@@ -706,7 +715,6 @@ auto HcSessionGraphItem::paint(
             // check if the parent is not the server. if no then
             // it means that the current item is a pivot session
             //
-            spdlog::debug( "[HcSessionGraphItem::paint] pivot" );
         } else {
             //
             // it's a direct session connection
@@ -834,7 +842,7 @@ HcSessionGraphEdge::HcSessionGraphEdge(
     destination->addEdge( this );
 
     pulsate.timer = new QTimer();
-    pulsate.color = Havoc->Theme.getGreen();
+    pulsate.color = color;
     _signals      = new HcGraphItemSignal( this );
 
     QObject::connect( pulsate.timer, &QTimer::timeout, _signals, &HcGraphItemSignal::updatePulsation );
@@ -843,7 +851,7 @@ HcSessionGraphEdge::HcSessionGraphEdge(
 }
 
 HcSessionGraphEdge::~HcSessionGraphEdge() {
-
+    delete _signals;
 }
 
 auto HcSessionGraphEdge::source()      const -> HcSessionGraphItem* { return _source;      }

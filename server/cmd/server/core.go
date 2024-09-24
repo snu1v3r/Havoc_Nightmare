@@ -79,7 +79,7 @@ func (t *Teamserver) Start() {
 			}
 
 			if ext != nil {
-				logger.Info("%s loaded: %v (%v)", colors.BoldBlue("[plugin]"), colors.BoldBlue(ext.Name), ext.Type)
+				logger.Info("%s plugin loaded: %v (%v)", colors.BoldBlue("-"), colors.BoldBlue(ext.Name), ext.Type)
 			}
 		}
 	}
@@ -176,4 +176,8 @@ func (t *Teamserver) Profile(path string) error {
 	}
 
 	return nil
+}
+
+func (t *Teamserver) PluginLoad(name string) (any, error) {
+	return t.plugins.Plugin(name)
 }
