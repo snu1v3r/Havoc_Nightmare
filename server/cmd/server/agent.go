@@ -44,19 +44,28 @@ func (t *Teamserver) AgentExist(uuid string) bool {
 
 func (t *Teamserver) AgentData(uuid string) (map[string]any, error) {
 	var (
-		agent *Agent
-		val   any
-		ok    bool
+		plugin string
+		err    error
 	)
 
-	// check if the given uuid already exists
-	if val, ok = t.agents.Load(uuid); ok {
-		agent = val.(*Agent)
-	} else {
-		return nil, errors.New("agent with given uuid doesn't exists")
+	if plugin, err = t.AgentType(uuid); err != nil {
+		return nil, err
 	}
 
-	return t.plugins.AgentGet(agent.plugin, uuid)
+	return t.plugins.AgentGet(plugin, uuid)
+}
+
+func (t *Teamserver) AgentInterface(uuid string) (any, error) {
+	var (
+		plugin string
+		err    error
+	)
+
+	if plugin, err = t.AgentType(uuid); err != nil {
+		return nil, err
+	}
+
+	return t.plugins.AgentInterface(plugin, uuid)
 }
 
 func (t *Teamserver) AgentType(uuid string) (string, error) {
@@ -75,19 +84,17 @@ func (t *Teamserver) AgentType(uuid string) (string, error) {
 
 func (t *Teamserver) AgentRemove(uuid string) error {
 	var (
-		agent any
-		ok    bool
-		err   error
+		plugin string
+		err    error
 	)
 
-	// check if the given uuid exists
-	if agent, ok = t.agents.Load(uuid); !ok {
-		return errors.New("agent with given uuid doesn't exists")
+	if plugin, err = t.AgentType(uuid); err != nil {
+		return err
 	}
 
 	// interact with the plugin that manages the agent
 	// to tell it that the agent is about to be removed
-	err = t.plugins.AgentRemove(agent.(*Agent).plugin, uuid)
+	err = t.plugins.AgentRemove(plugin, uuid)
 	if err != nil {
 		logger.DebugError("AgentRemove error on %v: %v", uuid, err)
 		return err

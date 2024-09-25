@@ -189,3 +189,30 @@ func (system *System) AgentGet(plugin, uuid string) (map[string]any, error) {
 
 	return ctx, err
 }
+
+func (system *System) AgentInterface(plugin, uuid string) (any, error) {
+	var (
+		err error
+		ext *Plugin
+		val any
+	)
+
+	err = errors.New("agent not found")
+
+	system.loaded.Range(func(key, value any) bool {
+		ext = value.(*Plugin)
+
+		if ext.Type != TypeAgent {
+			return true
+		}
+
+		if plugin == ext.Data["name"] {
+			val, err = ext.AgentInterface(uuid)
+			return false
+		}
+
+		return true
+	})
+
+	return val, err
+}

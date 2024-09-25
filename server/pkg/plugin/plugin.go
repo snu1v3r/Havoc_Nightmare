@@ -31,11 +31,11 @@ type HavocInterface interface {
 	AgentRegisterType(name string, agent map[string]any) error
 }
 
-type BasicInterface interface {
+type IPluginBasic interface {
 	Register(havoc any) map[string]any
 }
 
-type ListenerInterface interface {
+type IPluginListener interface {
 	ListenerRegister() map[string]any
 	ListenerStart(name string, options map[string]any) (map[string]string, error)
 	ListenerRestore(name, status string, options map[string]any) (map[string]string, error)
@@ -47,7 +47,7 @@ type ListenerInterface interface {
 	ListenerConfig(name string) (map[string]any, error)
 }
 
-type AgentInterface interface {
+type IPluginAgent interface {
 	AgentRegister() map[string]any
 	AgentRestore(uuid, parent, status, note string, serialized []byte) error
 	AgentRemove(uuid string) error
@@ -56,9 +56,10 @@ type AgentInterface interface {
 	AgentExecute(uuid string, data map[string]any, wait bool) (map[string]any, error)
 	AgentProcess(context map[string]any, request []byte) ([]byte, error)
 	AgentGet(uuid string) (map[string]any, error)
+	AgentInterface(uuid string) (any, error)
 }
 
-type ManagementInterface interface{}
+type IPluginManagement interface{}
 
 type Plugin struct {
 	Name string
@@ -66,10 +67,10 @@ type Plugin struct {
 	Data map[string]any
 
 	// the loaded plugin interface that are callable
-	BasicInterface
-	ListenerInterface
-	AgentInterface
-	ManagementInterface
+	IPluginBasic
+	IPluginListener
+	IPluginAgent
+	IPluginManagement
 }
 
 type System struct {
@@ -97,7 +98,7 @@ func (system *System) RegisterPlugin(path string) (*Plugin, error) {
 		err      error
 		open     *plugin.Plugin
 		lookup   plugin.Symbol
-		inter    BasicInterface
+		inter    IPluginBasic
 		register map[string]any
 		ext      *Plugin
 		ok       bool
@@ -122,7 +123,7 @@ func (system *System) RegisterPlugin(path string) (*Plugin, error) {
 
 	// cast the looked up symbol to
 	// the HavocPlugin interface
-	inter = lookup.(BasicInterface)
+	inter = lookup.(IPluginBasic)
 
 	// try to register the plugin
 	register = inter.Register(system.havoc)
@@ -248,9 +249,13 @@ func (system *System) CheckAndInsertInterface(extension *Plugin, inter any) erro
 			return fmt.Errorf("AgentGet not found")
 		}
 
+		if _, ok = reflection.MethodByName("AgentInterface"); !ok {
+			return fmt.Errorf("AgentInterface not found")
+		}
+
 		// cast the interface
 		// we found everything we searched for
-		extension.AgentInterface = inter.(AgentInterface)
+		extension.IPluginAgent = inter.(IPluginAgent)
 
 		break
 
@@ -296,7 +301,7 @@ func (system *System) CheckAndInsertInterface(extension *Plugin, inter any) erro
 
 		// cast the interface
 		// we found everything we searched for
-		extension.ListenerInterface = inter.(ListenerInterface)
+		extension.IPluginListener = inter.(IPluginListener)
 
 		break
 
