@@ -4,7 +4,6 @@
 #include <string>
 
 namespace Event {
-
     namespace user {
         static std::string login   = "user::login";
         static std::string logout  = "user::logout";
@@ -34,5 +33,10 @@ namespace Event {
     }
 };
 
+namespace AgentStatus {
+    static std::string disconnected = "disconnected";
+    static std::string unresponsive = "unresponsive";
+    static std::string healthy      = "healthy";
+}
 
 #endif //HAVOCCLIENT_EVENTS_H

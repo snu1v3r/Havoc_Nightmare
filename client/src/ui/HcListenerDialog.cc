@@ -274,3 +274,188 @@ auto HcListenerDialog::setEditingListener(
         );
     }
 }
+
+//
+// HcListenerChooseDialog
+//
+
+HcListenerChooseDialog::HcListenerChooseDialog( const std::string& protocol ) : Protocol( protocol ) {}
+HcListenerChooseDialog::~HcListenerChooseDialog() { delete Dialog; }
+
+auto HcListenerChooseDialog::start(
+    void
+) -> void {
+    Dialog = new QDialog;
+
+    Dialog->setWindowTitle( "Listener Select" );
+    Dialog->resize( 743, 378 );
+    Dialog->setStyleSheet( HavocClient::StyleSheet() );
+
+    GridLayout    = new QGridLayout( Dialog );
+    TableListener = new QTableWidget( Dialog );
+
+    TableListener->setObjectName( QString::fromUtf8( "TableListener" ) );
+    TableListener->setColumnCount( 5 );
+    TableListener->setHorizontalHeaderItem( 0, new QTableWidgetItem( "Name" ) );
+    TableListener->setHorizontalHeaderItem( 1, new QTableWidgetItem( "Type" ) );
+    TableListener->setHorizontalHeaderItem( 2, new QTableWidgetItem( "Host" ) );
+    TableListener->setHorizontalHeaderItem( 3, new QTableWidgetItem( "Port" ) );
+    TableListener->setHorizontalHeaderItem( 4, new QTableWidgetItem( "Status" ) );
+
+    TableListener->setEnabled( true );
+    TableListener->setShowGrid( false );
+    TableListener->setSortingEnabled( false );
+    TableListener->setWordWrap( true );
+    TableListener->setAlternatingRowColors( true );
+    TableListener->setCornerButtonEnabled( true );
+    TableListener->horizontalHeader()->setVisible( true );
+    TableListener->setSelectionBehavior( QAbstractItemView::SelectRows );
+    TableListener->setContextMenuPolicy( Qt::CustomContextMenu );
+    TableListener->horizontalHeader()->setSectionResizeMode( QHeaderView::ResizeMode::Stretch );
+    TableListener->horizontalHeader()->setStretchLastSection( true );
+    TableListener->verticalHeader()->setVisible( false );
+    TableListener->setFocusPolicy( Qt::NoFocus );
+
+    GridLayout->setObjectName( QString::fromUtf8( "GridLayout" ) );
+    GridLayout->addWidget( TableListener, 0, 0, 1, 4 );
+
+    for ( const auto& listener_name : Havoc->Listeners() ) {
+        const auto& opt = Havoc->ListenerObject( listener_name );
+
+        if ( opt.has_value() ) {
+            auto data   = opt.value();
+            auto name   = QString();
+            auto type   = QString();
+            auto host   = QString();
+            auto port   = QString();
+            auto status = QString();
+
+            if ( data.contains( "name" ) ) {
+                if ( data[ "name" ].is_string() ) {
+                    name = data[ "name" ].get<std::string>().c_str();
+                } else {
+                    spdlog::error( "invalid listener: \"name\" is not string" );
+                    continue;
+                }
+            } else {
+                spdlog::error( "invalid listener: \"name\" is not found" );
+                continue;
+            }
+
+            if ( data.contains( "protocol" ) ) {
+                if ( data[ "protocol" ].is_string() ) {
+                    type = data[ "protocol" ].get<std::string>().c_str();
+                } else {
+                    spdlog::error( "invalid listener: \"protocol\" is not string" );
+                    continue;
+                }
+            } else {
+                spdlog::error( "invalid listener: \"protocol\" is not found" );
+                continue;
+            }
+
+            if ( data.contains( "host" ) ) {
+                if ( data[ "host" ].is_string() ) {
+                    host = data[ "host" ].get<std::string>().c_str();
+                } else {
+                    spdlog::error( "invalid listener: \"host\" is not string" );
+                    continue;
+                }
+            } else {
+                spdlog::error( "invalid listener: \"host\" is not found" );
+                continue;
+            }
+
+            if ( data.contains( "port" ) ) {
+                if ( data[ "port" ].is_string() ) {
+                    port = data[ "port" ].get<std::string>().c_str();
+                } else {
+                    spdlog::error( "invalid listener: \"port\" is not string" );
+                    continue;
+                }
+            } else {
+                spdlog::error( "invalid listener: \"port\" is not found" );
+                continue;
+            }
+
+            if ( data.contains( "status" ) ) {
+                if ( data[ "status" ].is_string() ) {
+                    status = data[ "status" ].get<std::string>().c_str();
+                } else {
+                    spdlog::error( "invalid listener: \"status\" is not string" );
+                    continue;
+                }
+            } else {
+                spdlog::error( "invalid listener: \"status\" is not found" );
+                continue;
+            }
+
+            if ( ! Protocol.empty() && type.toStdString() != Protocol ) {
+                //
+                // if the protocol has been specified and the current
+                // listener data is the specified protocol then we are
+                // going to include them into the table to display
+                //
+                continue;
+            }
+
+            auto NameItem   = new HcListenerItem( name );
+            auto TypeItem   = new HcListenerItem( type );
+            auto HostItem   = new HcListenerItem( host );
+            auto PortItem   = new HcListenerItem( port );
+            auto StatusItem = new HcListenerItem();
+
+            StatusItem->setText( status );
+
+            TableListener->setRowCount( TableListener->rowCount() + 1 );
+
+            TableListener->setItem( TableListener->rowCount() - 1, 0, NameItem->Item );
+            TableListener->setCellWidget( TableListener->rowCount() - 1, 0, NameItem );
+
+            TableListener->setItem( TableListener->rowCount() - 1, 1, TypeItem->Item );
+            TableListener->setCellWidget( TableListener->rowCount() - 1, 1, TypeItem );
+
+            TableListener->setItem( TableListener->rowCount() - 1, 2, HostItem->Item );
+            TableListener->setCellWidget( TableListener->rowCount() - 1, 2, HostItem );
+
+            TableListener->setItem( TableListener->rowCount() - 1, 3, PortItem->Item );
+            TableListener->setCellWidget( TableListener->rowCount() - 1, 3, PortItem );
+
+            TableListener->setItem( TableListener->rowCount() - 1, 4, StatusItem->Item );
+            TableListener->setCellWidget( TableListener->rowCount() - 1, 4, StatusItem );
+        }
+    }
+
+    connect( TableListener, &QTableWidget::doubleClicked, [&]( const QModelIndex& index ) {
+        SelectedName = dynamic_cast<HcListenerItem*>(
+            TableListener->cellWidget( index.row(), 0 )
+        )->LabelStatus->text().toStdString();
+
+        spdlog::debug( "SelectedName: {}", SelectedName );
+
+        Dialog->close();
+    } );
+
+    if ( TableListener->rowCount() < 1 ) {
+        //
+        // if there are no listeners with the specified protocol
+        // or any kind of listeners available to choose from then
+        // abort and do not show the dialog
+        //
+        return;
+    }
+
+    Dialog->exec();
+}
+
+auto HcListenerChooseDialog::listenerData(
+    void
+) const -> json {
+    if ( ! SelectedName.empty() ) {
+        const auto& data = Havoc->ListenerObject( SelectedName );
+
+        return data.has_value() ? data.value() : json();
+    }
+
+    return {};
+}

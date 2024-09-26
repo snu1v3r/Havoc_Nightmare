@@ -79,6 +79,7 @@ HcPageAgent::HcPageAgent(
 
     auto graph = new ads::CDockWidget( "Session Graph" );
     auto table = new ads::CDockWidget( "Session Table" );
+    auto ghost = new ads::CDockWidget( "Ghost Widget"  );
 
     graph->setWidget( AgentGraph );
     graph->setFeatures( ads::CDockWidget::DockWidgetMovable );
@@ -88,8 +89,22 @@ HcPageAgent::HcPageAgent(
     table->setFeatures( ads::CDockWidget::DockWidgetMovable );
     table->setIcon( QIcon( ":/icons/32px-table-list" ) );
 
-    auto area = DockManager->addDockWidget( ads::TopDockWidgetArea, graph );
+    //
+    // this is just a "ghost" widget. It is meant to be added
+    // first on the bottom dock widget area where in future the
+    // agent console are going to be places as well.
+    //
+    ghost->setWidget( new QWidget );
+
+    auto area         = DockManager->addDockWidget( ads::TopDockWidgetArea,    graph );
+    ConsoleAreaWidget = DockManager->addDockWidget( ads::BottomDockWidgetArea, ghost );
     DockManager->addDockWidgetTabToArea( table, area );
+
+    //
+    // turn it invisible. it is not meant
+    // to be seen or interacted with
+    //
+    ghost->toggleView( false );
 
     AgentDisplayerSessions = new QLabel( this );
     AgentDisplayerSessions->setObjectName( "LabelDisplaySessions" );
@@ -181,11 +196,7 @@ auto HcPageAgent::addTab(
         ads::CDockWidget::DockWidgetClosable
     );
 
-    if ( ! ConsoleAreaWidget ) {
-        ConsoleAreaWidget = DockManager->addDockWidget( ads::BottomDockWidgetArea, tab );
-    } else {
-        DockManager->addDockWidgetTabToArea( tab, ConsoleAreaWidget );
-    }
+    DockManager->addDockWidgetTabToArea( tab, ConsoleAreaWidget );
 }
 
 HcAgentTableItem::HcAgentTableItem(
@@ -438,7 +449,7 @@ auto HcPageAgent::actionPayloadBuilder(
 auto HcPageAgent::itemChanged(
     QTableWidgetItem *item
 ) -> void {
-    auto agent_item = ( HcAgentTableItem* ) item;
+    auto agent_item = dynamic_cast<HcAgentTableItem*>( item );
 
     //
     // check if it is the agent item is equal to the note widget

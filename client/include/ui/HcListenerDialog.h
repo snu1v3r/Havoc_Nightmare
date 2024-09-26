@@ -30,7 +30,7 @@ enum ListenerState {
     Error
 };
 
-class HcListenerDialog : public QDialog
+class HcListenerDialog final : public QDialog
 {
     ListenerState   State            = None;
     json            edited_config    = {};
@@ -72,6 +72,28 @@ public:
 
     auto start() -> void;
     auto retranslateUi() -> void;
+};
+
+class HcListenerChooseDialog : public QObject
+{
+    Q_OBJECT
+
+    QDialog*      Dialog        = {};
+    QGridLayout*  GridLayout    = {};
+    QTableWidget* TableListener = {};
+    std::string   SelectedName  = {};
+    std::string   Protocol      = {};
+
+public:
+
+    explicit HcListenerChooseDialog(
+        const std::string& protocol
+    );
+
+    ~HcListenerChooseDialog();
+
+    auto start() -> void;
+    auto listenerData() const -> json;
 };
 
 QT_END_NAMESPACE

@@ -57,3 +57,25 @@ auto HcListenerRegisterMenuAction(
 
     Havoc->AddAction( action );
 }
+
+auto HcListenerPopupSelect(
+    const std::string& protocol
+) -> json {
+    auto dialog   = new HcListenerChooseDialog( protocol );
+    auto listener = json();
+
+    //
+    // we are queueing up a function call to
+    // be executed int the GUI main thread
+    // and wait til the execution finished
+    //
+    QMetaObject::invokeMethod( qApp, [&]() {
+        dialog->start();
+
+        listener = dialog->listenerData();
+
+        delete dialog;
+    }, Qt::BlockingQueuedConnection );
+
+    return listener;
+}

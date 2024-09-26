@@ -147,6 +147,10 @@ def HcUiGetStyleSheet() -> str:
     return ui.HcUiGetStyleSheet()
 
 
+def HcListenerPopupSelect( protocol: str ) -> dict:
+    return ui.HcListenerPopupSelect( protocol )
+
+
 def HcUiMessageBox( icon: QMessageBox.Icon, title: str, text: str ) -> None:
     ##
     ## heh a dirty fix. maybe there is a better way to
@@ -166,12 +170,14 @@ def HcUiMessageBox( icon: QMessageBox.Icon, title: str, text: str ) -> None:
 
     return
 
+
 def HcUiListenerRegisterView( protocol: str ):
 
     def _register( listener_view ):
         ui.HcUiListenerRegisterView( protocol, listener_view )
 
     return _register
+
 
 def HcUiBuilderRegisterView( payload: str ):
 

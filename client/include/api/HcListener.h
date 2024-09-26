@@ -23,4 +23,8 @@ auto HcListenerRegisterMenuAction(
     const py11::object& callback
 ) -> void;
 
+auto HcListenerPopupSelect(
+    const std::string& protocol
+) -> json;
+
 #endif //HAVOCCLIENT_HCLISTENER_H

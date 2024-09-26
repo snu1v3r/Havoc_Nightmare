@@ -61,26 +61,6 @@ PYBIND11_EMBEDDED_MODULE( _pyhavoc, m ) {
             const std::string&  name,
             const py11::object& object
         ) {
-            /*if ( Havoc->Protocols().empty() ) {
-                Helper::MessageBox(
-                    QMessageBox::Critical,
-                    "Script Manager",
-                    "Failed to register listener view: No protocols registered"
-                );
-
-                return;
-            }
-
-            if ( ! Havoc->ProtocolObject( name ).has_value() ) {
-                Helper::MessageBox(
-                    QMessageBox::Critical,
-                    "Script Manager",
-                    QString( "Failed to register listener view: No protocol with the name \"%1\" found" ).arg( name.c_str() ).toStdString()
-                );
-
-                return;
-            }*/
-
             Havoc->AddProtocol( name, object );
         } );
 
@@ -88,31 +68,11 @@ PYBIND11_EMBEDDED_MODULE( _pyhavoc, m ) {
             const std::string&  name,
             const py11::object& object
         ) {
-            /*if ( Havoc->Builders().empty() ) {
-                Helper::MessageBox(
-                    QMessageBox::Critical,
-                    "Script Manager",
-                    "Failed to register builder view: No payloads registered"
-                );
-
-                return;
-            }
-
-            if ( ! Havoc->BuilderObject( name ).has_value() ) {
-                Helper::MessageBox(
-                    QMessageBox::Critical,
-                    "Script Manager",
-                    QString( "Failed to register builder view: No payload with the name \"%1\" found" ).arg( name.c_str() ).toStdString()
-                );
-
-                return;
-            }*/
-
             Havoc->AddBuilder( name, object );
         } );
 
         ui.def( "HcUiGetStyleSheet", []() -> py11::str {
-            return ( Havoc->StyleSheet().toStdString() );
+            return ( HavocClient::StyleSheet().toStdString() );
         } );
 
         ui.def( "HcUiMessageBox", [](
@@ -120,8 +80,13 @@ PYBIND11_EMBEDDED_MODULE( _pyhavoc, m ) {
             const std::string& title,
             const std::string& text
         ) {
-            Helper::MessageBox( ( QMessageBox::Icon ) icon, title, text );
+            Helper::MessageBox( static_cast<QMessageBox::Icon>( icon ), title, text );
         }, py::call_guard<py::gil_scoped_release>() );
+
+        ui.def(
+            "HcListenerPopupSelect", HcListenerPopupSelect,
+            py::call_guard<pybind11::gil_scoped_release>()
+        );
     }
 
     //
@@ -151,9 +116,9 @@ HcPyEngine::HcPyEngine() {
     guard = new py11::scoped_interpreter;
 
     try {
-        py11::module_::import( "sys" )
-                .attr( "path" )
-                .attr( "append" )( "python" );
+        auto _ = py11::module_::import( "sys" )
+            .attr( "path" )
+            .attr( "append" )( "python" );
 
         py11::module_::import( "pyhavoc" );
     } catch ( py11::error_already_set &eas ) {
