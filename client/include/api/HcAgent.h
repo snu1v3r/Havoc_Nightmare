@@ -14,6 +14,12 @@ auto HcAgentConsoleWrite(
     const std::string& content
 ) -> void;
 
+auto HcAgentConsoleAddComplete(
+    const std::string& uuid,
+    const std::string& command,
+    const std::string& description
+) -> void;
+
 auto HcAgentConsoleLabel(
     const std::string& uuid,
     const std::string& content

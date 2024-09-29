@@ -885,6 +885,14 @@ auto HcSessionGraphEdge::setColor(
     this->color = color;
 }
 
+auto HcSessionGraphEdge::setStatus(
+    const QString& status,
+    const QColor&  color
+) -> void {
+    this->status       = status;
+    this->status_color = color;
+}
+
 auto HcSessionGraphEdge::startPulsation() -> void
 {
     if ( ! _source->graph()->settings()->pulsation() ) {
@@ -941,11 +949,14 @@ void HcSessionGraphEdge::paint(
     //       interactive and activate pulsating
     //
 
-    // Calculate the pulsating effect (e.g., changing color intensity)
+    //
+    // calculate the pulsating effect (e.g., changing color intensity)
+    //
     auto current_color = pulsate.active ? pulsate.color : color;
     if ( pulsate.active ) {
-        int alpha = 100 + ( 105 * std::sin( M_PI * pulsate.step / 10 ) );
-        current_color.setAlpha( alpha );
+        current_color.setAlpha(
+            100 + ( 105 * std::sin( M_PI * pulsate.step / 10 ) )
+        );
     }
 
     auto angle         = std::atan2( -line.dy(), line.dx() );
@@ -954,14 +965,70 @@ void HcSessionGraphEdge::paint(
     auto destArrowP1   = destPoint   + QPointF( sin( angle - M_PI / 3 ) * arrowSize, cos( angle - M_PI / 3 ) * arrowSize );
     auto destArrowP2   = destPoint   + QPointF( sin( angle - M_PI + M_PI / 3 ) * arrowSize, cos( angle - M_PI + M_PI / 3 ) * arrowSize );
 
-    painter->setPen( QPen( current_color, 2, Qt::DashLine, Qt::RoundCap, Qt::RoundJoin ) );
-    painter->drawLine( line );
-    painter->setBrush( current_color );
-
     if ( source()->agent() == nullptr ) {
+        //
+        // direct connection
+        //
+        painter->setPen( QPen( current_color, 2, Qt::DashLine, Qt::RoundCap, Qt::RoundJoin ) );
+        painter->drawLine( line );
+        painter->setBrush( current_color );
         painter->drawPolygon( QPolygonF() << line.p1() << sourceArrowP1 << sourceArrowP2 );
     } else {
+        //
+        // pivot connection
+        //
+
+        // adjust the text position so it is centered on the rotated line
+        const auto metrics = QFontMetrics( painter->font() );
+        const auto textPos = QPointF( -metrics.horizontalAdvance( status ) / 2, metrics.height() / 2 );
+
+        painter->setPen( QPen( current_color, 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin ) );
+        painter->setBrush( current_color  );
         painter->drawPolygon( QPolygonF() << line.p2() << destArrowP1 << destArrowP2 );
+
+        if ( status.isEmpty() ) {
+            //
+            // there is no status to display
+            //
+            painter->drawLine( line );
+            return;
+        }
+
+        // increase the font size of the status text
+        auto font = painter->font();
+        font.setPointSizeF( font.pointSizeF() * 1.1 );
+        painter->setFont( font );
+
+        // calculate two partial lines, leaving a gap for the text
+        auto gapLength      = metrics.horizontalAdvance( status ) + 10;
+        auto lineBeforeText = QLineF( line.p1(), line.pointAt( ( line.length() - gapLength ) / ( 2 * line.length() ) ) );
+        auto lineAfterText  = QLineF( line.pointAt( 1 - ( line.length() - gapLength ) / ( 2 * line.length() ) ), line.p2() );
+
+        painter->drawLine( lineBeforeText );
+        painter->drawLine( lineAfterText  );
+
+        // save the painter's state before rotating
+        painter->save();
+
+        // translate to the midpoint of the line
+        painter->translate( line.pointAt( 0.5 ) );
+
+        // rotate the painter by the angle of the line (in degrees)
+        auto angleDegrees = ( -angle * 180 / M_PI );
+
+        // if the angle makes the text upside down, rotate it by 180 degrees
+        if ( angleDegrees > 90 || angleDegrees < -90 ) {
+            angleDegrees += 180;
+        }
+
+        painter->rotate( angleDegrees );
+
+        // draw the text
+        painter->setPen( QPen( status_color ) ); // set the pen color for the text
+        painter->drawText( textPos, status.toUpper() );    // draw the rotated text
+
+        // restore the painter's state
+        painter->restore();
     }
 }
 

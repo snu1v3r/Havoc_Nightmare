@@ -238,6 +238,7 @@ auto HavocClient::Main(
     // server and dispatch all the incoming events
     //
     SetupThreads();
+
     return;
 
 ERROR_SERVER_RESPONSE:
@@ -519,7 +520,7 @@ auto HavocClient::Listeners() -> std::vector<std::string>
     return names;
 }
 
-auto HavocClient::Agents() const -> std::vector<HcAgent *>
+auto HavocClient::Agents() const -> std::vector<HcAgent*>
 {
     return Gui->PageAgent->agents;
 }

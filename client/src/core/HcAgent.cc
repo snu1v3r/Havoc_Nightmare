@@ -1,6 +1,11 @@
 #include <Havoc.h>
 #include <core/HcAgent.h>
 
+std::map<
+    std::string,
+    std::vector<std::pair<std::string, std::string>>
+>* HcAgentCompletionList = new std::map<std::string, std::vector<std::pair<std::string, std::string>>>();
+
 HcAgent::HcAgent(
     const json& metadata
 ) : data( metadata ) {}
@@ -36,6 +41,12 @@ auto HcAgent::initialize() -> bool {
         note = QString( data[ "note" ].get<std::string>().c_str() );
     } else {
         spdlog::debug( "[HcAgent::parse] agent does not contain any note" );
+    }
+
+    if ( data.contains( "status" ) && data[ "status" ].is_string() ) {
+        status = data[ "status" ].get<std::string>();
+    } else {
+        spdlog::debug( "[HcAgent::parse] agent does not contain any status" );
     }
 
     if ( data.contains( "meta" ) && data[ "meta" ].is_object() ) {
@@ -131,6 +142,19 @@ auto HcAgent::initialize() -> bool {
     console->setInputLabel( ">>>" );
     console->LabelHeader->setFixedHeight( 0 );
 
+    spdlog::debug( "HcAgentCompletionList[ {} ] : {}", type, HcAgentCompletionList->at( type ).size() );
+    // for ( const auto& _commands : HcAgentCompletionList->at( type ) ) {
+    //     spdlog::debug( "console( {}::{} )->addCompleteCommand( {} )", type, uuid, _commands.toStdString() );
+    // }
+
+    for ( int i = 0; i < HcAgentCompletionList->at( type ).size(); i++ ) {
+        auto [command, description] = HcAgentCompletionList->at( type ).at( i );
+
+        spdlog::debug( "command = {}, description = {}", command, description );
+
+        console->addCompleteCommand( command, description );
+    }
+
     //
     // if an interface has been registered then assign it to the agent
     //
@@ -146,6 +170,17 @@ auto HcAgent::initialize() -> bool {
     }
 
     return true;
+}
+
+auto HcAgent::post() -> void
+{
+    if ( status == AgentStatus::disconnected ) {
+        disconnected();
+    } else if ( status == AgentStatus::unresponsive ) {
+        unresponsive();
+    } else if ( status == AgentStatus::healthy ) {
+        healthy();
+    }
 }
 
 auto HcAgent::remove() -> void {
@@ -187,4 +222,38 @@ auto HcAgent::hide() -> void {
 
         return;
     }
+}
+
+auto HcAgent::disconnected(
+    void
+) -> void {
+    spdlog::debug( "agent::disconnected {}", uuid );
+
+    if ( ui.node->itemEdge() ) {
+        ui.node->itemEdge()->setColor( Havoc->Theme.getComment() );
+        ui.node->itemEdge()->setStatus(
+            AgentStatus::disconnected.c_str(),
+            Havoc->Theme.getRed()
+        );
+    }
+}
+
+auto HcAgent::unresponsive(
+    void
+) -> void {
+    spdlog::debug( "agent::unresponsive {}", uuid );
+
+    if ( ui.node->itemEdge() ) {
+        ui.node->itemEdge()->setColor( Havoc->Theme.getComment() );
+        ui.node->itemEdge()->setStatus(
+            AgentStatus::unresponsive.c_str(),
+            Havoc->Theme.getOrange()
+        );
+    }
+}
+
+auto HcAgent::healthy(
+    void
+) -> void {
+    spdlog::debug( "agent::healthy {}", uuid );
 }

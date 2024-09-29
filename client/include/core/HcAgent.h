@@ -48,6 +48,7 @@ struct HcAgent {
     std::optional<py11::object> interface;
     HcAgentConsole*             console;
     QString                     last;
+    std::string                 status;
 
     struct {
         HcSessionGraphItem* node;
@@ -75,8 +76,12 @@ struct HcAgent {
     );
 
     auto initialize() -> bool;
+    auto post() -> void;
     auto remove() -> void;
     auto hide() -> void;
+    auto disconnected() -> void;
+    auto unresponsive() -> void;
+    auto healthy() -> void;
 };
 
 #endif //HAVOCCLIENT_HCAGENT_H

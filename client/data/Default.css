@@ -242,6 +242,16 @@ QLabel {
     color: #f8f8f2;
 }
 
+QLineEdit[HcAgentLineEdit=true] {
+    background: #282A36;
+    color     : #f8f8f2;
+}
+
+QLabel[HcAgentLineEdit=true] {
+    color       : rgba(248, 248, 242, 0.52);
+    font-weight : bold;
+}
+
 QGroupBox {
     background: #282a36;
     color: #f8f8f2;
@@ -541,4 +551,9 @@ QPushButton:pressed[HcButtonInstall="uninstall"] {
 QPushButton:hover[HcButtonInstall="uninstall"] {
     border: 1px solid #FF5555;
     color: #FF5555;
+}
+
+#HcAgentCompleter {
+    background  : #282a36;
+    color       : #F8F8F2;
 }

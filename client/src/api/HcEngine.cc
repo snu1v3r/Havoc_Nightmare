@@ -105,6 +105,7 @@ PYBIND11_EMBEDDED_MODULE( _pyhavoc, m ) {
         agent.def( "HcAgentConsoleLabel",       HcAgentConsoleLabel );
         agent.def( "HcAgentConsoleWrite",       HcAgentConsoleWrite, py::call_guard<py::gil_scoped_release>() );
         agent.def( "HcAgentConsoleInput",       []( const py11::object& eval ) { Havoc->PyEngine->PyEval = eval; } );
+        agent.def( "HcAgentConsoleAddComplete", HcAgentConsoleAddComplete );
         agent.def( "HcAgentExecute",            HcAgentExecute, py::call_guard<py::gil_scoped_release>() );
         agent.def( "HcAgentRegisterMenuAction", HcAgentRegisterMenuAction );
     }

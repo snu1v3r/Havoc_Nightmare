@@ -556,11 +556,342 @@ auto HcPageAgent::removeAgent(
     AgentDisplayerPivots->setText( QString( "Pivots: %1" ).arg( is_pivot ? --pivots : pivots ) ); /* TODO: only set current alive beacons/sessions */
 }
 
+HcDescriptionDelegate::HcDescriptionDelegate(
+    QCompleter* completer,
+    QObject*    parent
+) : QStyledItemDelegate( parent ), completer( completer ) {}
+
+auto HcDescriptionDelegate::paint(
+    QPainter*                   painter,
+    const QStyleOptionViewItem& option,
+    const QModelIndex&          index
+) const -> void {
+    //
+    // TODO: highlight the typed out message inside of the popup
+    //
+    // auto mainText      = index.data(Qt::DisplayRole).toString();
+    // auto description   = index.data(Qt::ToolTipRole).toString();
+    // auto typedText     = completer->completionPrefix();
+    // auto prefixLength  = typedText.length();
+    // auto matchingPart  = mainText.left(prefixLength);
+    // auto remainingPart = mainText.mid(prefixLength);
+    //
+    // painter->save();
+    //
+    // // Set the option rect height for better visual
+    // QRect rect = option.rect; // Get the rectangle
+    // // rect.setHeight(rect.height() + 20); // Add extra height to prevent clipping
+    //
+    // // Preserve the font used in the option
+    // painter->setFont(option.font); // Set the font to the same as the option
+    //
+    // // Calculate the widths for matching and remaining parts
+    // int matchingWidth = option.fontMetrics.horizontalAdvance(matchingPart);
+    // int remainingWidth = option.fontMetrics.horizontalAdvance( remainingPart + " " + description ); // Include description in width
+    //
+    // // If there is no matching part, ensure we still draw the remaining text
+    // if (matchingPart.isEmpty()) {
+    //     painter->setPen(Havoc->Theme.getForeground());
+    //     painter->drawText(rect, Qt::AlignLeft | Qt::AlignVCenter, remainingPart + " " + description);
+    // } else {
+    //     // Draw the matching part
+    //     painter->setPen(Havoc->Theme.getPurple());
+    //     painter->drawText(rect.left(), rect.top(), matchingPart); // Align with top
+    //
+    //     // Draw the remaining part
+    //     painter->setPen(Havoc->Theme.getForeground());
+    //     // Adjust the left position for the remaining part
+    //     int remainingLeft = rect.left() + matchingWidth;
+    //     painter->drawText(remainingLeft, rect.top(), remainingPart + " " + description); // Align with top
+    // }
+    //
+    // painter->restore();
+
+    auto mainText        = index.data( Qt::DisplayRole ).toString();
+    auto description     = index.data( Qt::ToolTipRole ).toString();
+    auto descriptionRect = option.rect;
+
+    painter->save();
+    painter->drawText( option.rect, Qt::AlignLeft, mainText );
+
+    descriptionRect.setLeft( option.rect.left() + 200 );
+    painter->drawText( descriptionRect, Qt::AlignLeft, description );
+
+    painter->restore();
+}
+
+HcAgentLineEdit::HcAgentLineEdit(
+    QWidget* parent
+) : QLineEdit( parent ), m_completerShown( false ) {
+    setObjectName( "HcAgentLineEdit" );
+    setProperty( "HcAgentLineEdit", true );
+
+    m_timer = new QTimer( this );
+    m_timer->setSingleShot( true );
+
+    updatePrefixPosition();
+    updateMargins();
+
+    connect( m_timer, &QTimer::timeout,       this, &HcAgentLineEdit::showCompleter );
+    connect( this,    &QLineEdit::textEdited, this, &HcAgentLineEdit::onTextEdited );
+}
+
+auto HcAgentLineEdit::setPrefixLabel(
+    QLabel* label
+) -> void {
+    m_label = label;
+    m_label->setProperty( "HcAgentLineEdit", true );
+
+    updatePrefixPosition();
+    updateMargins();
+}
+
+auto HcAgentLineEdit::CursorRect(
+    void
+) const -> QRect {
+    return cursorRect();
+}
+
+auto HcAgentLineEdit::onTextEdited(
+    const QString& text
+) -> void {
+    updatePrefixPosition();
+    updateMargins();
+
+    m_completerShown = false;
+    m_timer->start( 0 );
+}
+
+auto HcAgentLineEdit::showCompleter(
+    void
+) -> void {
+    updatePrefixPosition();
+    updateMargins();
+
+    if ( completer() && ! m_completerShown && ! text().isEmpty() ) {
+        auto cr = CursorRect();
+        cr.setWidth( completer()->popup()->sizeHintForColumn( 0 ) +
+                     completer()->popup()->verticalScrollBar()->sizeHint().width() );
+        completer()->complete( cr );
+
+        auto popupRect = completer()->popup()->geometry();
+        popupRect.moveBottom( mapToGlobal( QPoint( 0, 0 ) ).y() );
+        completer()->popup()->setGeometry( popupRect );
+
+        m_completerShown = true;
+    }
+}
+
+auto HcAgentLineEdit::resizeEvent(
+    QResizeEvent* event
+) -> void {
+    updatePrefixPosition();
+    updateMargins();
+
+    QWidget::resizeEvent( event );
+}
+
+auto HcAgentLineEdit::updatePrefixPosition(
+    void
+) const -> void {
+    if ( m_label ) {
+        m_label->move( 10, ( height() - m_label->height() ) / 2 );
+    }
+}
+
+auto HcAgentLineEdit::updateMargins(
+    void
+) -> void {
+    if ( m_label ) {
+        setTextMargins( m_label->fontMetrics().horizontalAdvance( m_label->text() ) + 5, 0, 0, 0 );
+    }
+}
+
+HcAgentCompleter::HcAgentCompleter(
+    QObject* parent
+) : QCompleter( parent ) {
+    _model = new QStandardItemModel( this );
+
+    setModel( _model );
+
+    popup()->setObjectName( "HcAgentCompleter" );
+    popup()->setStyleSheet( HavocClient::StyleSheet() );
+    popup()->setItemDelegate( new HcDescriptionDelegate( this, popup() ) );
+    popup()->installEventFilter( this );
+
+    auto current = popup()->font();
+    auto size    = static_cast<int>( current.pointSize() * 1.10 );
+
+    current.setPointSize( size );
+    popup()->setFont( current );
+}
+
+HcAgentCompleter::~HcAgentCompleter() {}
+
+auto HcAgentCompleter::eventFilter(
+    QObject* parent,
+    QEvent*  event
+) -> bool {
+    if ( event->type() == QEvent::KeyPress ) {
+        auto keyEvent = dynamic_cast<QKeyEvent*>( event );
+
+        if ( keyEvent->key() == Qt::Key_Tab ) {
+            auto completions = getCurrentCompletions();
+
+            if (completions.size() == 1) {
+                if ( auto edit = qobject_cast<QLineEdit*>( widget() ) ) {
+                    edit->setText( completions[ 0 ] );
+                    edit->setCursorPosition( completions[ 0 ].length() );
+                    popup()->hide();
+                    return true;
+                }
+            } else if ( completions.size() > 1 ) {
+                const auto commonPrefix = findLongestCommonPrefix( completions );
+
+                if ( ! commonPrefix.isEmpty() ) {
+                    if ( const auto edit = dynamic_cast<HcAgentLineEdit*>( widget() ) ) {
+                        edit->setText( commonPrefix );
+                        edit->setCursorPosition( commonPrefix.length() );
+
+                        auto cr = edit->CursorRect();
+                        cr.setWidth( popup()->sizeHintForColumn( 0 ) +
+                                     popup()->verticalScrollBar()->sizeHint().width() );
+                        complete( cr );
+
+                        auto popupRect = popup()->geometry();
+                        popupRect.moveBottom( edit->mapToGlobal( QPoint( 0, 0 ) ).y() );
+                        popup()->setGeometry( popupRect );
+
+                        return true;
+                    }
+                }
+            }
+        }
+    } else if ( event->type() == QEvent::Show ) {
+        popup()->setFixedWidth( dynamic_cast<QLineEdit*>( this->parent() )->width() - 200 );
+    }
+
+    return QCompleter::eventFilter( parent, event );
+}
+
+auto HcAgentCompleter::addCommand(
+    const std::string& command,
+    const std::string& description
+) -> void {
+    _items.push_back( std::pair( command, description ) );
+
+    spdlog::debug( "addCommand( {}, {} )", command, description );
+
+    const auto item = new QStandardItem( command.c_str() );
+    item->setToolTip( description.c_str() );
+
+    _model->appendRow( item );
+}
+
+auto HcAgentCompleter::getCurrentCompletions(
+    void
+) -> QStringList {
+    auto completions = QStringList();
+
+    for ( int row = 0; row < popup()->model()->rowCount(); ++row ) {
+        auto index = popup()->model()->index( row, 0 );
+        auto text  = popup()->model()->data( index, Qt::DisplayRole ).toString();
+        completions.append( text );
+    }
+
+    return completions;
+}
+
+auto HcAgentCompleter::findLongestCommonPrefix(
+    const QStringList& strings
+) -> QString {
+    if ( strings.isEmpty() ) {
+        return QString();
+    }
+
+    auto prefix = strings[ 0 ];
+
+    for ( const QString &str : strings ) {
+        int j = 0;
+
+        while ( j < prefix.length() && j < str.length() && prefix[ j ] == str[ j ] ) {
+            ++j;
+        }
+
+        prefix = prefix.left( j );
+        if ( prefix.isEmpty() ) {
+            break;
+        }
+    }
+
+    return prefix;
+}
+
 HcAgentConsole::HcAgentConsole(
     HcAgent* meta,
     QWidget* parent
-) : HcConsole( parent ), Meta( meta ) {
-    setObjectName( "HcAgentConsole" );
+) : QWidget( parent ), Meta( meta ) {
+    if ( objectName().isEmpty() ) {
+        setObjectName( "HcAgentConsole" );
+    }
+
+    gridLayout = new QGridLayout( this );
+    gridLayout->setObjectName( "gridLayout" );
+    gridLayout->setContentsMargins( 0, 0, 0, 0 );
+
+    LabelHeader = new QLabel( this );
+    LabelHeader->setObjectName( "LabelHeader" );
+
+    Console = new QTextEdit( this );
+    Console->setObjectName( "Console" );
+    Console->setReadOnly( true );
+    Console->setProperty( "HcConsole", "true" );
+
+    LabelBottom = new QLabel( this );
+    LabelBottom->setObjectName( "LabelBottom" );
+
+    Input = new HcAgentLineEdit( this );
+    Input->setObjectName( "Input" );
+    Input->addAction( tr( "Clear console screen" ), QKeySequence( Qt::CTRL | Qt::Key::Key_L ), this, [&](){ Console->clear(); } );
+
+    LabelInput = new QLabel( Input );
+    LabelInput->setObjectName( "LabelInput" );
+    Input->setPrefixLabel( LabelInput );
+
+    Completer = new HcAgentCompleter( Input );
+    Completer->setCompletionMode( QCompleter::PopupCompletion );
+    Completer->setCaseSensitivity( Qt::CaseInsensitive );
+
+    Input->setCompleter( Completer );
+
+    connect( Input, &QLineEdit::returnPressed, this, &HcAgentConsole::inputEnter );
+
+    gridLayout->addWidget( LabelHeader, 0, 0, 1, 2 );
+    gridLayout->addWidget( Console,     1, 0, 1, 2 );
+    gridLayout->addWidget( LabelBottom, 2, 0, 1, 2 );
+    gridLayout->addWidget( Input,       3, 0, 1, 1 );
+
+    // gridLayout->addWidget( LabelInput,  3, 0, 1, 1 );
+
+    QMetaObject::connectSlotsByName( this );
+}
+
+auto HcAgentConsole::setHeaderLabel(
+    const QString& text
+) -> void {
+    LabelHeader->setText( text );
+}
+
+auto HcAgentConsole::setBottomLabel(
+    const QString& text
+) -> void {
+    LabelBottom->setText( text );
+}
+
+auto HcAgentConsole::setInputLabel(
+    const QString& text
+) -> void {
+    LabelInput->setText( text );
 }
 
 auto HcAgentConsole::inputEnter(
@@ -587,4 +918,17 @@ auto HcAgentConsole::inputEnter(
             emit agent->ui.signal.ConsoleWrite( agent->uuid.c_str(), "[!] No agent script handler registered for this type" );
         }
     }, Meta, input );
+}
+
+auto HcAgentConsole::appendConsole(
+    const QString& text
+) const -> void {
+    Console->append( text );
+}
+
+auto HcAgentConsole::addCompleteCommand(
+    const std::string& command,
+    const std::string& description
+) const -> void {
+    Completer->addCommand( command, description );
 }

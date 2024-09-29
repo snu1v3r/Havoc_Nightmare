@@ -397,7 +397,51 @@ auto HavocClient::eventDispatch(
     }
     else if ( type == Event::agent::status )
     {
+        spdlog::debug( "Event::agent::status: {}", data.dump() );
 
+        auto uuid   = std::string();
+        auto status = std::string();
+
+        if ( data.empty() ) {
+            spdlog::error( "Event::agent::heartbeat: invalid package (data emtpy)" );
+            return;
+        }
+
+        if ( data.contains( "uuid" ) ) {
+            if ( data[ "uuid" ].is_string() ) {
+                uuid = data[ "uuid" ].get<std::string>();
+            } else {
+                spdlog::error( "invalid agent heartbeat: \"uuid\" is not string" );
+                return;
+            }
+        } else {
+            spdlog::error( "invalid agent heartbeat: \"uuid\" is not found" );
+            return;
+        }
+
+        if ( data.contains( "status" ) ) {
+            if ( data[ "status" ].is_string() ) {
+                status = data[ "status" ].get<std::string>();
+            } else {
+                spdlog::error( "invalid agent heartbeat: \"uuid\" is not string" );
+                return;
+            }
+        } else {
+            spdlog::error( "invalid agent heartbeat: \"uuid\" is not found" );
+            return;
+        }
+
+        if ( auto _value = Agent( uuid ); _value.has_value() ) {
+            auto agent = _value.value();
+
+            if ( status == AgentStatus::disconnected ) {
+                agent->disconnected();
+            } else if ( status == AgentStatus::unresponsive ) {
+                agent->unresponsive();
+            } else if ( status == AgentStatus::healthy ) {
+                agent->healthy();
+            }
+        }
     }
     else if ( type == Event::agent::remove )
     {

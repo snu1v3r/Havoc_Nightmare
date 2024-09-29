@@ -2,11 +2,12 @@
 #define HAVOCCLIENT_HCPAGEAGENT_H
 
 #include <QStackedWidget>
-#include <QtWidgets/QComboBox>
 #include <QtWidgets/QSplitter>
-#include <QtWidgets/QTabWidget>
+#include <QtWidgets/QCompleter>
 #include <QtWidgets/QTableWidget>
 #include <QtWidgets/QWidget>
+#include <QtWidgets/QStyledItemDelegate>
+#include <QStandardItemModel>
 
 #include <ui/HcConsole.h>
 #include <ui/HcSessionGraph.h>
@@ -17,19 +18,128 @@
 
 QT_BEGIN_NAMESPACE
 
-class HcAgentConsole : public HcConsole {
-    HcAgent* Meta = nullptr;
+extern std::map<
+    std::string,
+    std::vector<std::pair<std::string, std::string>>
+>* HcAgentCompletionList;
+
+class HcAgentLineEdit final : public QLineEdit
+{
+    QTimer* m_timer          = {};
+    bool    m_completerShown = {};
+    QLabel* m_label          = {};
 
 public:
+    explicit HcAgentLineEdit(
+        QWidget* parent
+    );
+
+    auto setPrefixLabel(
+        QLabel* label
+    ) -> void;
+
+    auto CursorRect() const -> QRect;
+
+protected:
+    auto resizeEvent(
+        QResizeEvent* event
+    ) -> void override;
+
+private:
+    auto updatePrefixPosition() const -> void;
+    auto updateMargins() -> void;
+
+private slots:
+    auto onTextEdited(
+        const QString& text
+    ) -> void;
+
+    auto showCompleter(
+        void
+    ) -> void;
+};
+
+class HcAgentCompleter final : public QCompleter
+{
+    QStandardItemModel*                              _model;
+    std::vector<std::pair<std::string, std::string>> _items;
+
+public:
+    explicit HcAgentCompleter( QObject* parent = nullptr );
+    ~HcAgentCompleter() override;
+
+    auto addCommand(
+        const std::string& command,
+        const std::string& description
+    ) -> void;
+
+    auto getCurrentCompletions() -> QStringList;
+    auto findLongestCommonPrefix( const QStringList& strings ) -> QString;
+
+protected:
+    auto eventFilter(
+        QObject* parent,
+        QEvent*  event
+    ) -> bool override;
+};
+
+class HcDescriptionDelegate : public QStyledItemDelegate {
+
+public:
+    HcDescriptionDelegate( QCompleter* completer, QObject* parent = {} );
+
+    auto paint(
+        QPainter*                   painter,
+        const QStyleOptionViewItem& option,
+        const QModelIndex&          index
+    ) const -> void override;
+
+private:
+    QCompleter *completer;
+};
+
+class HcAgentConsole final : public QWidget {
+    HcAgent*          Meta        = {};
+    HcAgentCompleter* Completer   = {};
+    QGridLayout*      gridLayout  = {};
+    QTextEdit*        Console     = {};
+    HcAgentLineEdit*  Input       = {};
+
+public:
+    QLabel* LabelHeader = {};
+    QLabel* LabelBottom = {};
+    QLabel* LabelInput  = {};
+
     explicit HcAgentConsole(
         HcAgent* meta,
         QWidget* parent = nullptr
     );
 
-    auto inputEnter() -> void override;
+    auto setHeaderLabel(
+        const QString& text
+    ) -> void;
+
+    auto setBottomLabel(
+        const QString& text
+    ) -> void;
+
+    auto setInputLabel(
+        const QString& text
+    ) -> void;
+
+    auto inputEnter() -> void;
+
+    auto appendConsole(
+        const QString& text
+    ) const -> void;
+
+    auto addCompleteCommand(
+        const std::string& command,
+        const std::string& description
+    ) const -> void;
 };
 
-class HcPageAgent : public QWidget
+class HcPageAgent final : public QWidget
 {
     bool                  SplitterMoveToggle  = false;
     ads::CDockAreaWidget* ConsoleAreaWidget   = {};

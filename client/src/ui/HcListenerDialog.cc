@@ -431,8 +431,6 @@ auto HcListenerChooseDialog::start(
             TableListener->cellWidget( index.row(), 0 )
         )->LabelStatus->text().toStdString();
 
-        spdlog::debug( "SelectedName: {}", SelectedName );
-
         Dialog->close();
     } );
 

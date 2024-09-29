@@ -295,6 +295,11 @@ auto HcMainWindow::AddAgent(
     }
 
     PageAgent->addAgent( agent );
+
+    //
+    // post-processing of the agent
+    //
+    agent->post();
 }
 
 auto HcMainWindow::RemoveAgent(

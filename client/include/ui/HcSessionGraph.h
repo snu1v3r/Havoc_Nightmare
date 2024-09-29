@@ -150,6 +150,8 @@ class HcSessionGraphEdge final : public QGraphicsItem
     HcSessionGraphItem* _source      = {};
     HcSessionGraphItem* _destination = {};
     QColor              color        = {};
+    QString             status       = {};
+    QColor              status_color = {};
     QPointF             sourcePoint  = {};
     QPointF             destPoint    = {};
     qreal               arrowSize    = 10;
@@ -176,6 +178,11 @@ public:
     auto adjust() -> void;
     auto setColor(
         const QColor& color
+    ) -> void;
+
+    auto setStatus(
+        const QString& status,
+        const QColor&  color
     ) -> void;
 
     enum { Type = UserType + 2 };
