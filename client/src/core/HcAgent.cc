@@ -142,15 +142,8 @@ auto HcAgent::initialize() -> bool {
     console->setInputLabel( ">>>" );
     console->LabelHeader->setFixedHeight( 0 );
 
-    spdlog::debug( "HcAgentCompletionList[ {} ] : {}", type, HcAgentCompletionList->at( type ).size() );
-    // for ( const auto& _commands : HcAgentCompletionList->at( type ) ) {
-    //     spdlog::debug( "console( {}::{} )->addCompleteCommand( {} )", type, uuid, _commands.toStdString() );
-    // }
-
     for ( int i = 0; i < HcAgentCompletionList->at( type ).size(); i++ ) {
         auto [command, description] = HcAgentCompletionList->at( type ).at( i );
-
-        spdlog::debug( "command = {}, description = {}", command, description );
 
         console->addCompleteCommand( command, description );
     }

@@ -28,6 +28,10 @@ def HcAgentExport( interface ):
     return interface
 
 
+def HcAgentConsoleAddComplete( agent_type: str, command: str, description: str ):
+    agent.HcAgentConsoleAddComplete( agent_type, command, description )
+
+
 def HcAgentConsoleHeader( uuid: str, header: str ):
     agent.HcAgentConsoleHeader( uuid, header )
 

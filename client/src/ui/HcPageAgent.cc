@@ -733,15 +733,15 @@ auto HcAgentCompleter::eventFilter(
     QEvent*  event
 ) -> bool {
     if ( event->type() == QEvent::KeyPress ) {
-        auto keyEvent = dynamic_cast<QKeyEvent*>( event );
+        const auto keyEvent = dynamic_cast<QKeyEvent*>( event );
 
         if ( keyEvent->key() == Qt::Key_Tab ) {
             auto completions = getCurrentCompletions();
 
-            if (completions.size() == 1) {
-                if ( auto edit = qobject_cast<QLineEdit*>( widget() ) ) {
+            if ( completions.size() == 1 ) {
+                if ( const auto edit = dynamic_cast<HcAgentLineEdit*>( widget() ) ) {
                     edit->setText( completions[ 0 ] );
-                    edit->setCursorPosition( completions[ 0 ].length() );
+                    edit->setCursorPosition( static_cast<int>( completions[ 0 ].length() ) );
                     popup()->hide();
                     return true;
                 }
@@ -751,7 +751,7 @@ auto HcAgentCompleter::eventFilter(
                 if ( ! commonPrefix.isEmpty() ) {
                     if ( const auto edit = dynamic_cast<HcAgentLineEdit*>( widget() ) ) {
                         edit->setText( commonPrefix );
-                        edit->setCursorPosition( commonPrefix.length() );
+                        edit->setCursorPosition( static_cast<int>( commonPrefix.length() ) );
 
                         auto cr = edit->CursorRect();
                         cr.setWidth( popup()->sizeHintForColumn( 0 ) +
@@ -779,8 +779,6 @@ auto HcAgentCompleter::addCommand(
     const std::string& description
 ) -> void {
     _items.push_back( std::pair( command, description ) );
-
-    spdlog::debug( "addCommand( {}, {} )", command, description );
 
     const auto item = new QStandardItem( command.c_str() );
     item->setToolTip( description.c_str() );
@@ -870,8 +868,6 @@ HcAgentConsole::HcAgentConsole(
     gridLayout->addWidget( Console,     1, 0, 1, 2 );
     gridLayout->addWidget( LabelBottom, 2, 0, 1, 2 );
     gridLayout->addWidget( Input,       3, 0, 1, 1 );
-
-    // gridLayout->addWidget( LabelInput,  3, 0, 1, 1 );
 
     QMetaObject::connectSlotsByName( this );
 }

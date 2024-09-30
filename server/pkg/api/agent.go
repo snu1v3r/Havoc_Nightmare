@@ -200,6 +200,7 @@ func (api *ServerApi) agentList(ctx *gin.Context) {
 		agent  map[string]any
 		plugin string
 		note   string
+		status string
 	)
 
 	if !api.sanityCheck(ctx) {
@@ -221,16 +222,22 @@ func (api *ServerApi) agentList(ctx *gin.Context) {
 			goto ERROR
 		}
 
+		if status, err = api.havoc.AgentStatus(uuid); err != nil {
+			logger.DebugError("failed to get agent status: %v", err)
+			goto ERROR
+		}
+
 		if agent, err = api.havoc.AgentData(uuid); err != nil {
 			logger.DebugError("failed to get agent info: %v", err)
 			goto ERROR
 		}
 
 		list = append(list, map[string]any{
-			"uuid": uuid,
-			"type": plugin,
-			"meta": agent,
-			"note": note,
+			"uuid":   uuid,
+			"type":   plugin,
+			"meta":   agent,
+			"note":   note,
+			"status": status,
 		})
 	}
 

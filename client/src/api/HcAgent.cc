@@ -108,21 +108,13 @@ auto HcAgentConsoleAddComplete(
     const std::string& command,
     const std::string& description
 ) -> void {
-    spdlog::debug( "HcAgentConsoleAddComplete( {}, {}, {} )", agent, command, description );
-
     if ( ! HcAgentCompletionList->contains( agent ) ) {
         HcAgentCompletionList->insert( { agent, std::vector<std::pair<std::string, std::string>>() } );
     }
 
     HcAgentCompletionList->at( agent ).push_back( std::pair( command, description ) );
 
-    for ( int i = 0; i < HcAgentCompletionList->at( agent ).size(); i++ ) {
-        auto [c, d] = HcAgentCompletionList->at( agent ).at( i );
-        spdlog::debug( "command = {}, description = {}", c, d );
-    }
-
     for ( const auto _agent : Havoc->Agents() ) {
-        spdlog::debug( "{} == {}", _agent->type, agent );
         if ( _agent->type == agent ) {
             //
             // we only have to add it once to the agent type
