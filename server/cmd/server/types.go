@@ -16,14 +16,10 @@ type HavocUser struct {
 	socket   *websocket.Conn
 }
 
-type serverFlags struct {
+type Flags struct {
 	Profile string
 	Debug   bool
 	Default bool
-}
-
-type TeamserverFlags struct {
-	Server serverFlags
 }
 
 type Handler struct {
@@ -57,7 +53,7 @@ type Agent struct {
 }
 
 type Teamserver struct {
-	flags  TeamserverFlags
+	flags  Flags
 	server *api.ServerApi
 
 	database   *db.Database

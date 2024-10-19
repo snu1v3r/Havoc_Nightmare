@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	Version  = "1.0"
-	CodeName = "King Of The Damned"
+	Version      = "1.0"
+	CodeName     = "King Of The Damned"
+	DatabasePath = "/database.db"
 )
 
 func init() {
@@ -36,7 +37,7 @@ func NewTeamserver() *Teamserver {
 	return server
 }
 
-func (t *Teamserver) SetFlags(flags TeamserverFlags) {
+func (t *Teamserver) SetFlags(flags Flags) {
 	t.flags = flags
 }
 
@@ -48,7 +49,7 @@ func (t *Teamserver) Start() {
 	)
 
 	// initialize database that is going to store the agent connections, listener status/logs, etc.
-	if t.database, err = db.NewDatabase(t.ConfigPath() + "/database.db"); err != nil {
+	if t.database, err = db.NewDatabase(t.ConfigPath() + DatabasePath); err != nil {
 		logger.Error("failed to initialize database: " + colors.Red(err.Error()))
 		return
 	}

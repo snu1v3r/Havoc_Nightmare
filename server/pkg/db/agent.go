@@ -449,7 +449,7 @@ func (db *Database) AgentSetHide(uuid string, hide bool) error {
 	return err
 }
 
-func (db *Database) AgentLists() ([]Agent, error) {
+func (db *Database) AgentList() ([]Agent, error) {
 	var (
 		agents []Agent
 		query  *sql.Rows
@@ -515,6 +515,36 @@ func (db *Database) AgentConsole(uuid string) ([][]byte, error) {
 	}
 
 	return list, nil
+}
+
+func (db *Database) AgentRemove(uuid string) error {
+	var (
+		stmt  *sql.Stmt
+		err   error
+		exist bool
+	)
+
+	if exist, err = db.AgentExist(uuid); err != nil {
+		return err
+	} else if !exist {
+		return errors.New("agent not exist")
+	}
+
+	// create sql delete statement
+	if stmt, err = db.sqlite.Prepare(`
+        DELETE FROM Agents WHERE uuid = ?
+    `); err != nil {
+		logger.DebugError("sqlite.Prepare failed: %v", err)
+		return err
+	}
+
+	// insert the data into the created sql statement
+	if _, err = stmt.Exec(uuid); err != nil {
+		logger.DebugError("stmt.Exec failed: %v", err)
+		return err
+	}
+
+	return err
 }
 
 func (db *Database) AgentConsoleInsert(uuid string, data []byte) error {

@@ -20,9 +20,9 @@ func (t *Teamserver) RestoreAgents() error {
 
 	// get a list of agents from the
 	// database that aren't disabled
-	list, err = t.database.AgentLists()
+	list, err = t.database.AgentList()
 	if err != nil {
-		logger.DebugError(LogPrefix+"AgentLists failed: %v", err)
+		logger.DebugError(LogPrefix+"AgentList failed: %v", err)
 		return err
 	}
 
