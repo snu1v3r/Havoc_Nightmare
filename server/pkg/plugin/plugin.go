@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"Havoc/pkg/logger"
 	"Havoc/pkg/utils"
 	"errors"
 	"fmt"
@@ -64,9 +63,11 @@ type IPluginAgent interface {
 type IPluginManagement interface{}
 
 type Plugin struct {
-	Name string
-	Type string
-	Data map[string]any
+	Name    string
+	Type    string
+	Version string
+	Author  string
+	Data    map[string]any
 
 	// the loaded plugin interface that are callable
 	IPluginBasic
@@ -136,8 +137,11 @@ func (system *System) RegisterPlugin(path string) (*Plugin, error) {
 	// over and over again
 
 	if name, err = utils.MapKey[string](register, "name"); err != nil {
-		logger.Error("failed to get plugin name: %v", err)
 		return nil, err
+	}
+
+	if !ValidName(name) {
+		return nil, errors.New("invalid plugin name")
 	}
 
 	// check if the plugin already has been registered yet
@@ -148,7 +152,7 @@ func (system *System) RegisterPlugin(path string) (*Plugin, error) {
 	// if has been registered then return the
 	// errAlreadyRegistered error and abort
 	if ext != nil {
-		return nil, errAlreadyRegistered
+		return nil, fmt.Errorf("%v: %v", errAlreadyRegistered, name)
 	}
 
 	// add plugin to the internal sync
@@ -173,36 +177,20 @@ func (system *System) AddPlugin(register map[string]any, inter any) (*Plugin, er
 		return nil, errors.New("register is empty")
 	}
 
-	// get the name of the registered plugin
-	switch register["name"].(type) {
-	case string:
-		// check if the name is empty.
-		// if yes then return an error
-		if len(register["name"].(string)) == 0 {
-			return nil, errors.New("register.name is empty")
-		}
-
-		// set the name of the extension/plugin
-		ext.Name = register["name"].(string)
-		break
-
-	default:
-		return nil, errors.New("register.name is not a string")
+	if ext.Name, err = utils.MapKey[string](register, "name"); err != nil {
+		return nil, err
 	}
 
-	// get the type of the registered plugin
-	switch register["type"].(type) {
-	case string:
-		// check if the type is empty.
-		// if yes then return an error
-		if len(register["type"].(string)) == 0 {
-			return nil, errors.New("register.type is empty")
-		}
+	if ext.Type, err = utils.MapKey[string](register, "type"); err != nil {
+		return nil, err
+	}
 
-		// set the name of the extension/plugin
-		ext.Type = register["type"].(string)
-	default:
-		return nil, errors.New("register.type is not a string")
+	if ext.Version, err = utils.MapKey[string](register, "version"); err != nil {
+		return nil, err
+	}
+
+	if ext.Author, err = utils.MapKey[string](register, "author"); err != nil {
+		return nil, err
 	}
 
 	// sanity check interface and insert it into the plugin

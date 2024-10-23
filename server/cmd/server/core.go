@@ -72,20 +72,20 @@ func (t *Teamserver) Start() {
 	}
 
 	// load all registered plugins from the database
-	if plugins, err = t.database.PluginList(); err != nil {
+	if plugins, err = t.database.PluginList(); err == nil {
+		for _, entry := range plugins {
+			var ext *plugin.Plugin
+
+			if ext, err = t.plugins.RegisterPlugin(entry.Path); err != nil {
+				logger.Info("%s failed to load plugin %s: %v", colors.BoldBlue("[plugin]"), entry.Path, colors.Red(err))
+			}
+
+			if ext != nil {
+				logger.Info("%s plugin loaded: %v (%v)", colors.BoldBlue("-"), colors.BoldBlue(ext.Name), ext.Type)
+			}
+		}
+	} else {
 		logger.Error("failed to load plugin list: " + err.Error())
-	}
-
-	for _, entry := range plugins {
-		var ext *plugin.Plugin
-
-		if ext, err = t.plugins.RegisterPlugin(entry.Path); err != nil {
-			logger.Info("%s failed to load plugin %s: %v", colors.BoldBlue("[plugin]"), entry.Path, colors.Red(err))
-		}
-
-		if ext != nil {
-			logger.Info("%s plugin loaded: %v (%v)", colors.BoldBlue("-"), colors.BoldBlue(ext.Name), ext.Type)
-		}
 	}
 
 	// load all plugins that has been specified in the profile configuration

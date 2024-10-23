@@ -2,8 +2,9 @@
 host = "0.0.0.0"
 port = 40056
 plugins = [
-  "../kaine-kit/bin/http.hp",
-  "../kaine-kit/bin/kaine.hp"
+  "../kaine-kit/plugins/http.hp",
+  "../kaine-kit/plugins/kaine.hp",
+  "../kaine-kit/plugins/smb.hp"
 ]
 
 [[operator]]

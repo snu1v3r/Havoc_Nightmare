@@ -3,7 +3,7 @@ ifndef VERBOSE
 endif
 
 # main build target. compiles the teamserver and client
-all: ts-build client-build
+all: ts-compile # client-build
 
 ts-compile:
 	@ echo "[*] compile server"
@@ -24,8 +24,7 @@ client-build:
 	@ echo "[*] building client"
 	@ git submodule update --init --recursive
 	@ mkdir client/Build; cd client/Build; cmake ..
-	@ if [ -d "client/Modules" ]; then echo "Modules installed"; else git clone https://github.com/HavocFramework/Modules client/Modules --single-branch --branch `git rev-parse --abbrev-ref HEAD`; fi
-	@ cmake --build client/Build -- -j 4
+	@ cmake --build client/Build -- -j 6
 
 client-cleanup:
 	@ echo "[*] client cleanup"

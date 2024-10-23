@@ -5,6 +5,7 @@ import (
 	"Havoc/pkg/colors"
 	"Havoc/pkg/db"
 	"Havoc/pkg/logger"
+	"Havoc/pkg/plugin"
 	"Havoc/pkg/utils"
 	"encoding/json"
 	"fmt"
@@ -105,6 +106,16 @@ func (p *Plugin) Register(path string) error {
 
 		// TODO: validate if name, _type and _path is valid !!
 		// TODO: maybe resolve the absolute path of path and save that into the database
+
+		if !plugin.ValidName(name) {
+			logger.Error("invalid plugin name: %v", name)
+			continue
+		}
+
+		if !plugin.ValidType(_type) {
+			logger.Error("invalid plugin type from %v: %v", name, _type)
+			continue
+		}
 
 		err = p.database.PluginRegister(name, _type, version, path+"/"+_path)
 		if err != nil {
