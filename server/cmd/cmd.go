@@ -1,40 +1,50 @@
 package cmd
 
 import (
-	"Havoc/pkg/logger"
 	"fmt"
 	"os"
 	"time"
 
-	dbcmd "Havoc/cmd/db"
+	"Havoc/cmd/db"
+	"Havoc/cmd/plugin"
 	"Havoc/cmd/server"
 	"Havoc/pkg/colors"
+	"Havoc/pkg/logger"
+
 	"github.com/spf13/cobra"
 )
 
 var (
 	serverFlags   server.Flags
-	databaseFlags dbcmd.Flags
+	databaseFlags db.Flags
+	pluginFlags   plugin.Flags
 
 	HavocCmd = &cobra.Command{
 		Use:          "havoc",
-		Short:        fmt.Sprintf("Havoc Framework [Version: %v] [CodeName: %v]", server.Version, server.CodeName),
+		Short:        fmt.Sprintf("Havoc Framework [%v %v]", server.Version, server.CodeName),
 		SilenceUsage: true,
-		RunE:         havocRun,
+		Run:          havocRun,
 	}
 
 	cliServer = &cobra.Command{
 		Use:          "server",
-		Short:        "team server command",
+		Short:        "teamserver command",
 		SilenceUsage: true,
-		RunE:         serverRun,
+		Run:          serverRun,
 	}
 
 	cliDatabase = &cobra.Command{
 		Use:          "database",
-		Short:        "interact with the havoc database",
+		Short:        "database manager command",
 		SilenceUsage: true,
-		RunE:         databaseRun,
+		Run:          databaseRun,
+	}
+
+	cliPlugin = &cobra.Command{
+		Use:          "plugin",
+		Short:        "plugin manager command",
+		SilenceUsage: true,
+		Run:          pluginRun,
 	}
 )
 
@@ -42,21 +52,28 @@ var (
 func init() {
 	HavocCmd.CompletionOptions.DisableDefaultCmd = true
 
+	// hide the help subcommand
+	HavocCmd.SetHelpCommand(&cobra.Command{Hidden: true})
+
 	// server command flags
 	cliServer.Flags().SortFlags = false
 	cliServer.Flags().StringVarP(&serverFlags.Profile, "profile", "", "", "set havoc teamserver profile")
 	cliServer.Flags().BoolVarP(&serverFlags.Debug, "debug", "", false, "enable debug mode")
 	cliServer.Flags().BoolVarP(&serverFlags.Default, "default", "d", false, "uses default profile (overwrites --profile)")
 
+	// plugin command flags
+	cliPlugin.Flags().SortFlags = false
+	cliPlugin.Flags().StringVarP(&pluginFlags.Register, "register", "", "", "register plugin path")
+	cliPlugin.Flags().StringVarP(&pluginFlags.UnRegister, "unregister", "", "", "unregister specified plugin")
+	cliPlugin.Flags().BoolVarP(&pluginFlags.UnRegisterAll, "unregister-all", "", false, "unregister all registered plugin")
+	cliPlugin.Flags().BoolVarP(&pluginFlags.List, "list", "", false, "list registered plugins")
+
 	// database command flags
 	cliDatabase.Flags().SortFlags = false
-
 	cliDatabase.Flags().BoolVarP(&databaseFlags.ClearAll, "clear-all", "", false, "clear all data from the database")
-
 	cliDatabase.Flags().BoolVarP(&databaseFlags.Agent.List, "agent-list", "", false, "list all registered agents from the database")
 	cliDatabase.Flags().StringVarP(&databaseFlags.Agent.Remove, "agent-remove", "", "", "remove an agent uuid from the database")
 	cliDatabase.Flags().BoolVarP(&databaseFlags.Agent.Clear, "agent-clear", "", false, "clear all registered agents from the database")
-
 	cliDatabase.Flags().BoolVarP(&databaseFlags.Listener.List, "listener-list", "", false, "list all available listeners from the database")
 	cliDatabase.Flags().StringVarP(&databaseFlags.Listener.Remove, "listener-remove", "", "", "remove a listener from the database")
 	cliDatabase.Flags().BoolVarP(&databaseFlags.Listener.Clear, "listener-clear", "", false, "clear all listeners from the database")
@@ -64,60 +81,61 @@ func init() {
 	// add commands to the teamserver cli
 	HavocCmd.Flags().SortFlags = false
 	HavocCmd.AddCommand(cliServer)
+	HavocCmd.AddCommand(cliPlugin)
 	HavocCmd.AddCommand(cliDatabase)
 }
 
-func havocRun(cmd *cobra.Command, args []string) error {
+func havocRun(cmd *cobra.Command, _ []string) {
 	if len(os.Args) <= 2 {
 		err := cmd.Help()
 		if err != nil {
-			return err
+			logger.Error("error: %v", err)
 		}
 		os.Exit(0)
 	}
-
-	return nil
 }
 
-func serverRun(cmd *cobra.Command, args []string) error {
+func serverRun(cmd *cobra.Command, _ []string) {
 	var (
-		DirPath, _  = os.Getwd()
-		ServerTimer = time.Now()
-		Server      *server.Teamserver
-		err         error
+		path, _    = os.Getwd()
+		timer      = time.Now()
+		teamserver *server.Teamserver
+		err        error
 	)
 
 	if len(os.Args) <= 2 {
 		err = cmd.Help()
 		if err != nil {
-			return err
+			logger.Error("error: %v", err)
 		}
 		os.Exit(0)
 	}
 
-	if Server = server.NewTeamserver(); Server == nil {
+	//
+	if teamserver = server.NewTeamserver(); teamserver == nil {
 		logger.Error("failed to create server")
-		return nil
+		return
 	}
 
-	Server.SetFlags(serverFlags)
+	teamserver.SetFlags(serverFlags)
 
 	if serverFlags.Debug {
 		logger.SetDebug(true)
 		logger.Debug("debug mode enabled")
 	}
 
-	logger.Info("%v [Version: %v %v]", colors.BoldWhite("Havoc Framework"), server.Version, colors.BoldBlue(server.CodeName))
+	logger.Info("%v [%v %v]", colors.BoldWhite("Havoc Framework"), server.Version, colors.BoldBlue(server.CodeName))
 
 	if serverFlags.Default {
-		err = Server.Profile(DirPath + "/data/havoc.toml")
-		if err != nil {
-			return nil
+		if err = teamserver.Profile(path + "/data/havoc.toml"); err != nil {
+			logger.Error("failed to parse default profile: %v", err)
+			return
 		}
 	} else if serverFlags.Profile != "" {
-		err = Server.Profile(serverFlags.Profile)
+		err = teamserver.Profile(serverFlags.Profile)
 		if err != nil {
-			return nil
+			logger.Error("failed to parse profile %v: %v", serverFlags.Profile, err)
+			return
 		}
 	} else {
 		logger.Error("no profile specified")
@@ -125,29 +143,30 @@ func serverRun(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	logger.Info("time: " + colors.Yellow(ServerTimer.Format("02/01/2006 15:04:05")))
+	logger.Info("time: " + colors.Yellow(timer.Format("02/01/2006 15:04:05")))
 
-	Server.Start()
+	teamserver.Start()
 
-	return nil
+	return
 }
 
-func databaseRun(cmd *cobra.Command, args []string) error {
+func databaseRun(cmd *cobra.Command, _ []string) {
 	var (
 		err      error
-		database *dbcmd.DatabaseCli
+		database *db.DatabaseCli
 	)
 
 	if len(os.Args) <= 2 {
 		err = cmd.Help()
 		if err != nil {
-			return err
+			logger.Error("error: %v", err)
 		}
-		return nil
+		return
 	}
 
-	if database = dbcmd.NewDatabaseCli(); database == nil {
-		return nil
+	if database = db.NewDatabaseCli(); database == nil {
+		logger.Error("failed to create database")
+		return
 	}
 
 	if databaseFlags.ClearAll {
@@ -167,5 +186,47 @@ func databaseRun(cmd *cobra.Command, args []string) error {
 		_ = database.ListenerRemove(databaseFlags.Listener.Remove)
 	}
 
-	return nil
+	return
+}
+
+func pluginRun(cmd *cobra.Command, _ []string) {
+	var (
+		err     error
+		manager *plugin.Plugin
+	)
+
+	if len(os.Args) <= 2 {
+		err = cmd.Help()
+		if err != nil {
+			logger.Error("error: %v", err)
+		}
+		return
+	}
+
+	if manager = plugin.NewPlugin(); manager == nil {
+		logger.Error("failed to create plugin manager")
+		return
+	}
+
+	if len(pluginFlags.Register) != 0 {
+		if err = manager.Register(pluginFlags.Register); err != nil {
+			logger.Error("failed to register plugin: %v", err)
+			return
+		}
+	} else if len(pluginFlags.UnRegister) != 0 {
+		if err = manager.UnRegister(pluginFlags.UnRegister); err != nil {
+			logger.Error("failed to unregister plugin: %v", err)
+			return
+		}
+	} else if pluginFlags.UnRegisterAll {
+		if err = manager.UnRegisterAll(); err != nil {
+			logger.Error("failed to unregister plugin: %v", err)
+			return
+		}
+	} else if pluginFlags.List {
+		if err = manager.List(); err != nil {
+			logger.Error("failed to list plugins: %v", err)
+			return
+		}
+	}
 }

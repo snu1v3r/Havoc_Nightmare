@@ -46,6 +46,7 @@ func (t *Teamserver) Start() {
 		err               error
 		server            profile.Server
 		certPath, keyPath string
+		plugins           []db.Plugin
 	)
 
 	// initialize database that is going to store the agent connections, listener status/logs, etc.
@@ -70,12 +71,31 @@ func (t *Teamserver) Start() {
 		return
 	}
 
-	// load all plugins that has been specified in the folder
+	// load all registered plugins from the database
+	if plugins, err = t.database.PluginList(); err != nil {
+		logger.Error("failed to load plugin list: " + err.Error())
+	}
+
+	for _, entry := range plugins {
+		var ext *plugin.Plugin
+
+		if ext, err = t.plugins.RegisterPlugin(entry.Path); err != nil {
+			logger.Info("%s failed to load plugin %s: %v", colors.BoldBlue("[plugin]"), entry.Path, colors.Red(err))
+		}
+
+		if ext != nil {
+			logger.Info("%s plugin loaded: %v (%v)", colors.BoldBlue("-"), colors.BoldBlue(ext.Name), ext.Type)
+		}
+	}
+
+	// load all plugins that has been specified in the profile configuration
 	if len(server.Plugins) != 0 {
 		for i := range server.Plugins {
 			var ext *plugin.Plugin
 
-			if ext, err = t.plugins.RegisterPlugin(server.Plugins[i]); err != nil {
+			// we also have to check if the plugin has been
+			// already loaded previously from the database
+			if ext, err = t.plugins.RegisterPlugin(server.Plugins[i]); err != nil && !plugin.IsAlreadyRegistered(err) {
 				logger.Info("%s failed to load plugin %s: %v", colors.BoldBlue("[plugin]"), server.Plugins[i], colors.Red(err))
 			}
 

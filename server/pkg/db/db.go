@@ -85,6 +85,18 @@ func (db *Database) prepare() error {
 		return err
 	}
 
+	// creat a database table for Plugins if it doesn't exist yet
+	if _, err = db.sqlite.Exec(
+		`CREATE TABLE IF NOT EXISTS "Plugins" (
+			"name"    TEXT,
+			"type"	  TEXT,
+			"version" TEXT,
+			"path"	  TEXT
+		)`,
+	); err != nil {
+		return err
+	}
+
 	return err
 }
 

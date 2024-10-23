@@ -23,7 +23,7 @@ func (db *Database) AgentInsert(uuid, _type, parent, status, note string, metada
 	)
 
 	// check if the to be inserted agent uuid already exists
-	exist, err = db.AgentExist(uuid)
+	exist, err = db.AgentExists(uuid)
 	if err != nil {
 		return err
 	} else if exist {
@@ -63,7 +63,7 @@ func (db *Database) AgentUpdate(uuid, parent, status, note string, metadata []by
 		exist bool
 	)
 
-	if exist, err = db.AgentExist(uuid); err != nil {
+	if exist, err = db.AgentExists(uuid); err != nil {
 		return err
 	} else if !exist {
 		return errors.New("agent not exist")
@@ -86,7 +86,7 @@ func (db *Database) AgentUpdate(uuid, parent, status, note string, metadata []by
 	return err
 }
 
-func (db *Database) AgentExist(uuid string) (bool, error) {
+func (db *Database) AgentExists(uuid string) (bool, error) {
 	var (
 		stmt *sql.Stmt
 		err  error
@@ -134,7 +134,7 @@ func (db *Database) AgentMetadata(uuid string) ([]byte, error) {
 		exist    bool
 	)
 
-	if exist, err = db.AgentExist(uuid); err != nil {
+	if exist, err = db.AgentExists(uuid); err != nil {
 		return nil, err
 	} else if !exist {
 		return nil, errors.New("agent not exist")
@@ -163,7 +163,7 @@ func (db *Database) AgentType(uuid string) (string, error) {
 		exist bool
 	)
 
-	if exist, err = db.AgentExist(uuid); err != nil {
+	if exist, err = db.AgentExists(uuid); err != nil {
 		return "", err
 	} else if !exist {
 		return "", errors.New("agent not exist")
@@ -192,7 +192,7 @@ func (db *Database) AgentParent(uuid string) (string, error) {
 		exist  bool
 	)
 
-	if exist, err = db.AgentExist(uuid); err != nil {
+	if exist, err = db.AgentExists(uuid); err != nil {
 		return "", err
 	} else if !exist {
 		return "", errors.New("agent not exist")
@@ -221,7 +221,7 @@ func (db *Database) AgentStatus(uuid string) (string, error) {
 		exist  bool
 	)
 
-	if exist, err = db.AgentExist(uuid); err != nil {
+	if exist, err = db.AgentExists(uuid); err != nil {
 		return "", err
 	} else if !exist {
 		return "", errors.New("agent not exist")
@@ -250,7 +250,7 @@ func (db *Database) AgentNote(uuid string) (string, error) {
 		exist bool
 	)
 
-	if exist, err = db.AgentExist(uuid); err != nil {
+	if exist, err = db.AgentExists(uuid); err != nil {
 		return "", err
 	} else if !exist {
 		return "", errors.New("agent not exist")
@@ -279,7 +279,7 @@ func (db *Database) AgentDisabled(uuid string) (bool, error) {
 		exist    bool
 	)
 
-	if exist, err = db.AgentExist(uuid); err != nil {
+	if exist, err = db.AgentExists(uuid); err != nil {
 		return false, err
 	} else if !exist {
 		return false, errors.New("agent not exist")
@@ -308,7 +308,7 @@ func (db *Database) AgentHidden(uuid string) (bool, error) {
 		exist  bool
 	)
 
-	if exist, err = db.AgentExist(uuid); err != nil {
+	if exist, err = db.AgentExists(uuid); err != nil {
 		return false, err
 	} else if !exist {
 		return false, errors.New("agent not exist")
@@ -336,7 +336,7 @@ func (db *Database) AgentSetStatus(uuid string, status string) error {
 		exist bool
 	)
 
-	if exist, err = db.AgentExist(uuid); err != nil {
+	if exist, err = db.AgentExists(uuid); err != nil {
 		return err
 	} else if !exist {
 		return errors.New("agent not exist")
@@ -366,7 +366,7 @@ func (db *Database) AgentSetNote(uuid string, note string) error {
 		exist bool
 	)
 
-	if exist, err = db.AgentExist(uuid); err != nil {
+	if exist, err = db.AgentExists(uuid); err != nil {
 		return err
 	} else if !exist {
 		return errors.New("agent not exist")
@@ -396,7 +396,7 @@ func (db *Database) AgentSetDisabled(uuid string, disabled bool) error {
 		exist bool
 	)
 
-	if exist, err = db.AgentExist(uuid); err != nil {
+	if exist, err = db.AgentExists(uuid); err != nil {
 		return err
 	} else if !exist {
 		return errors.New("agent not exist")
@@ -426,7 +426,7 @@ func (db *Database) AgentSetHide(uuid string, hide bool) error {
 		exist bool
 	)
 
-	if exist, err = db.AgentExist(uuid); err != nil {
+	if exist, err = db.AgentExists(uuid); err != nil {
 		return err
 	} else if !exist {
 		return errors.New("agent not exist")
@@ -491,7 +491,7 @@ func (db *Database) AgentConsole(uuid string) ([][]byte, error) {
 		exist bool
 	)
 
-	if exist, err = db.AgentExist(uuid); err != nil {
+	if exist, err = db.AgentExists(uuid); err != nil {
 		return nil, err
 	} else if !exist {
 		return nil, errors.New("agent not exist")
@@ -524,7 +524,7 @@ func (db *Database) AgentRemove(uuid string) error {
 		exist bool
 	)
 
-	if exist, err = db.AgentExist(uuid); err != nil {
+	if exist, err = db.AgentExists(uuid); err != nil {
 		return err
 	} else if !exist {
 		return errors.New("agent not exist")
@@ -554,7 +554,7 @@ func (db *Database) AgentConsoleInsert(uuid string, data []byte) error {
 		exist bool
 	)
 
-	if exist, err = db.AgentExist(uuid); err != nil {
+	if exist, err = db.AgentExists(uuid); err != nil {
 		return err
 	} else if !exist {
 		return errors.New("agent not exist")

@@ -47,7 +47,7 @@ type HavocInterface interface {
 
 	AgentInitialize(uuid, plugin, status, note string, data map[string]any) error
 	AgentData(uuid string) (map[string]any, error)
-	AgentExist(uuid string) bool
+	AgentExists(uuid string) bool
 	AgentType(uuid string) (string, error)
 	AgentRemove(uuid string) error
 	AgentList() []string

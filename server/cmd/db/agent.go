@@ -24,7 +24,7 @@ func (d *DatabaseCli) AgentList() error {
 
 	if len(agents) == 0 {
 		logger.Warn("no agents has been registered")
-		return err
+		return nil
 	}
 
 	list.SetOutputMirror(os.Stdout)

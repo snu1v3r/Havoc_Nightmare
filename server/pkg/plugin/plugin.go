@@ -1,6 +1,8 @@
 package plugin
 
 import (
+	"Havoc/pkg/logger"
+	"Havoc/pkg/utils"
 	"errors"
 	"fmt"
 	"plugin"
@@ -100,6 +102,7 @@ func (system *System) RegisterPlugin(path string) (*Plugin, error) {
 		lookup   plugin.Symbol
 		inter    IPluginBasic
 		register map[string]any
+		name     string
 		ext      *Plugin
 		ok       bool
 	)
@@ -127,6 +130,26 @@ func (system *System) RegisterPlugin(path string) (*Plugin, error) {
 
 	// try to register the plugin
 	register = inter.Register(system.havoc)
+
+	// check if the plugin already has been registered
+	// to the manager to avoid loading the same plugin
+	// over and over again
+
+	if name, err = utils.MapKey[string](register, "name"); err != nil {
+		logger.Error("failed to get plugin name: %v", err)
+		return nil, err
+	}
+
+	// check if the plugin already has been registered yet
+	if ext, err = system.Plugin(name); !IsPluginNotFound(err) {
+		return nil, err
+	}
+
+	// if has been registered then return the
+	// errAlreadyRegistered error and abort
+	if ext != nil {
+		return nil, errAlreadyRegistered
+	}
 
 	// add plugin to the internal sync
 	// map and make it available

@@ -36,7 +36,7 @@ func (t *Teamserver) AgentInitialize(uuid, plugin, status, note string, data map
 	return nil
 }
 
-func (t *Teamserver) AgentExist(uuid string) bool {
+func (t *Teamserver) AgentExists(uuid string) bool {
 	_, found := t.agents.Load(uuid)
 
 	return found
@@ -439,8 +439,8 @@ func (t *Teamserver) DatabaseAgentUpdate(uuid string, parent, status, note strin
 	return err
 }
 
-func (t *Teamserver) DatabaseAgentExist(uuid string) (bool, error) {
-	return t.database.AgentExist(uuid)
+func (t *Teamserver) DatabaseAgentExists(uuid string) (bool, error) {
+	return t.database.AgentExists(uuid)
 }
 
 func (t *Teamserver) DatabaseAgentType(uuid string) (string, error) {

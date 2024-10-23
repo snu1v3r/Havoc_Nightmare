@@ -34,11 +34,13 @@ func NewDatabaseCli() *DatabaseCli {
 		err        error
 	)
 
+	// to ensure that the database is accessible/created
 	if teamserver = server.NewTeamserver(); teamserver == nil {
 		logger.Error("failed to create server")
 		return nil
 	}
 
+	// create an object to interact with the database
 	if database, err = db.NewDatabase(teamserver.ConfigPath() + server.DatabasePath); err != nil {
 		logger.Error("failed to open database: %v", err)
 		return nil

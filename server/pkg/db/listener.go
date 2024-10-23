@@ -21,7 +21,7 @@ func (db *Database) ListenerInsert(name, protocol, status string, config []byte)
 	)
 
 	// check if the to be inserted listener name already exists
-	exist, err = db.ListenerExist(name)
+	exist, err = db.ListenerExists(name)
 	if err != nil {
 		return err
 	} else if exist {
@@ -114,7 +114,7 @@ func (db *Database) ListenerSetStatus(name string, status string) error {
 	return err
 }
 
-func (db *Database) ListenerExist(name string) (bool, error) {
+func (db *Database) ListenerExists(name string) (bool, error) {
 	var (
 		stmt *sql.Stmt
 		err  error
