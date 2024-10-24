@@ -1,7 +1,9 @@
 package plugin
 
 import (
+	"Havoc/pkg"
 	"Havoc/pkg/utils"
+
 	"errors"
 	"fmt"
 	"plugin"
@@ -14,23 +16,6 @@ const (
 	TypeAgent      = "agent"
 	TypeManagement = "management"
 )
-
-type HavocInterface interface {
-	LogInfo(fmt string, args ...any)
-	LogError(fmt string, args ...any)
-	LogWarn(fmt string, args ...any)
-	LogDebug(fmt string, args ...any)
-	LogDbgError(fmt string, args ...any)
-	LogFatal(fmt string, args ...any)
-	LogPanic(fmt string, args ...any)
-
-	Version() map[string]string
-
-	ListenerRegisterType(name string, listener map[string]any) error
-	ListenerProtocol(name string) (string, error)
-
-	AgentRegisterType(name string, agent map[string]any) error
-}
 
 type IPluginBasic interface {
 	Register(havoc any) map[string]any
@@ -63,11 +48,12 @@ type IPluginAgent interface {
 type IPluginManagement interface{}
 
 type Plugin struct {
-	Name    string
-	Type    string
-	Version string
-	Author  string
-	Data    map[string]any
+	Name      string
+	Type      string
+	Version   string
+	Author    string
+	Resources []string
+	Data      map[string]any
 
 	// the loaded plugin interface that are callable
 	IPluginBasic
@@ -79,7 +65,7 @@ type Plugin struct {
 type System struct {
 	// havoc teamserver instance that is
 	// going to be passed to every loaded plugin
-	havoc HavocInterface
+	havoc pkg.IHavocCore
 
 	// loaded havoc plugins
 	// those plugins have been
@@ -89,7 +75,7 @@ type System struct {
 
 // NewPluginSystem
 // create a new plugin system instance
-func NewPluginSystem(havoc HavocInterface) *System {
+func NewPluginSystem(havoc pkg.IHavocCore) *System {
 	return &System{
 		havoc: havoc,
 	}
@@ -187,6 +173,13 @@ func (system *System) AddPlugin(register map[string]any, inter any) (*Plugin, er
 
 	if ext.Version, err = utils.MapKey[string](register, "version"); err != nil {
 		return nil, err
+	}
+
+	ext.Resources = []string{}
+	if _, ok := register["resources"]; ok {
+		if ext.Resources, err = utils.MapKey[[]string](register, "resources"); err != nil {
+			return nil, err
+		}
 	}
 
 	if ext.Author, err = utils.MapKey[string](register, "author"); err != nil {
@@ -358,4 +351,19 @@ func (system *System) interactPlugin(extension *Plugin) error {
 	}
 
 	return nil
+}
+
+func (system *System) List() ([]*Plugin, error) {
+	var (
+		list []*Plugin
+		err  error
+	)
+
+	system.loaded.Range(func(key, value interface{}) bool {
+		list = append(list, value.(*Plugin))
+
+		return true
+	})
+
+	return list, err
 }

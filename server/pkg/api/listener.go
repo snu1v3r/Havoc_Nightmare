@@ -60,7 +60,7 @@ func (api *ServerApi) listenerStart(ctx *gin.Context) {
 		goto ERROR
 	}
 
-	if err = api.havoc.ListenerStart(name, protocol, options); err != nil {
+	if err = api.ListenerStart(name, protocol, options); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -108,7 +108,7 @@ func (api *ServerApi) listenerStop(ctx *gin.Context) {
 		goto ERROR
 	}
 
-	if err = api.havoc.ListenerStop(name); err != nil {
+	if err = api.ListenerStop(name); err != nil {
 		goto ERROR
 	}
 
@@ -155,7 +155,7 @@ func (api *ServerApi) listenerRestart(ctx *gin.Context) {
 		goto ERROR
 	}
 
-	if err = api.havoc.ListenerRestart(name); err != nil {
+	if err = api.ListenerRestart(name); err != nil {
 		goto ERROR
 	}
 
@@ -202,7 +202,7 @@ func (api *ServerApi) listenerRemove(ctx *gin.Context) {
 		goto ERROR
 	}
 
-	if err = api.havoc.ListenerRemove(name); err != nil {
+	if err = api.ListenerRemove(name); err != nil {
 		goto ERROR
 	}
 
@@ -255,7 +255,7 @@ func (api *ServerApi) listenerEdit(ctx *gin.Context) {
 	}
 
 	// process listener event
-	if err = api.havoc.ListenerEdit(name, config); err != nil {
+	if err = api.ListenerEdit(name, config); err != nil {
 		goto ERROR
 	}
 
@@ -302,7 +302,7 @@ func (api *ServerApi) listenerEvent(ctx *gin.Context) {
 	}
 
 	// process listener event
-	if event, err = api.havoc.ListenerEvent(protocol, event); err != nil {
+	if event, err = api.ListenerEvent(protocol, event); err != nil {
 		goto ERROR
 	}
 
@@ -350,7 +350,7 @@ func (api *ServerApi) listenerConfig(ctx *gin.Context) {
 	}
 
 	// process listener event
-	if config, err = api.havoc.ListenerConfig(name); err != nil {
+	if config, err = api.ListenerConfig(name); err != nil {
 		goto ERROR
 	}
 
@@ -371,6 +371,6 @@ func (api *ServerApi) listenerList(ctx *gin.Context) {
 
 	logger.Debug("got request on /api/listener/list")
 
-	ctx.JSON(http.StatusOK, api.havoc.ListenerList())
+	ctx.JSON(http.StatusOK, api.ListenerList())
 	return
 }

@@ -53,7 +53,7 @@ func (api *ServerApi) agentBuild(ctx *gin.Context) {
 	}
 
 	// interact with the plugin to generate a payload
-	name, body, cfg, err = api.havoc.AgentGenerate(name, config)
+	name, body, cfg, err = api.AgentGenerate(name, config)
 	if err != nil {
 		logger.DebugError("Failed to generate agent payload: %v", err)
 		goto ERROR
@@ -121,7 +121,7 @@ func (api *ServerApi) agentExecute(ctx *gin.Context) {
 	}
 
 	// interact with the plugin to generate a payload
-	response, err = api.havoc.AgentExecute(uuid, data, wait)
+	response, err = api.AgentExecute(uuid, data, wait)
 	if err != nil {
 		logger.DebugError("Failed to execute agent command: %v", err)
 		goto ERROR
@@ -176,7 +176,7 @@ func (api *ServerApi) agentNote(ctx *gin.Context) {
 		goto ERROR
 	}
 
-	err = api.havoc.AgentSetNote(uuid, note)
+	err = api.AgentSetNote(uuid, note)
 	if err != nil {
 		err = fmt.Errorf("failed to set agent note: %v", err)
 		goto ERROR
@@ -210,24 +210,24 @@ func (api *ServerApi) agentList(ctx *gin.Context) {
 
 	logger.Debug("/api/agent/list")
 
-	array = api.havoc.AgentList()
+	array = api.AgentList()
 	for _, uuid := range array {
-		if plugin, err = api.havoc.AgentType(uuid); err != nil {
+		if plugin, err = api.AgentType(uuid); err != nil {
 			logger.DebugError("failed to get agent type: %v", err)
 			goto ERROR
 		}
 
-		if note, err = api.havoc.AgentNote(uuid); err != nil {
+		if note, err = api.AgentNote(uuid); err != nil {
 			logger.DebugError("failed to get agent note: %v", err)
 			goto ERROR
 		}
 
-		if status, err = api.havoc.AgentStatus(uuid); err != nil {
+		if status, err = api.AgentStatus(uuid); err != nil {
 			logger.DebugError("failed to get agent status: %v", err)
 			goto ERROR
 		}
 
-		if agent, err = api.havoc.AgentData(uuid); err != nil {
+		if agent, err = api.AgentData(uuid); err != nil {
 			logger.DebugError("failed to get agent info: %v", err)
 			goto ERROR
 		}
@@ -284,7 +284,7 @@ func (api *ServerApi) agentRemove(ctx *gin.Context) {
 		goto ERROR
 	}
 
-	if err = api.havoc.AgentRemove(uuid); err != nil {
+	if err = api.AgentRemove(uuid); err != nil {
 		logger.DebugError("failed to delete agent session: %v", err)
 		goto ERROR
 	}
@@ -326,13 +326,11 @@ func (api *ServerApi) agentConsole(ctx *gin.Context) {
 		goto ERROR
 	}
 
-	uuid, err = utils.MapKey[string](response, "uuid")
-	if err != nil {
+	if uuid, err = utils.MapKey[string](response, "uuid"); err != nil {
 		goto ERROR
 	}
 
-	list, err = api.havoc.DatabaseAgentConsole(uuid)
-	if err != nil {
+	if list, err = api.DatabaseAgentConsole(uuid); err != nil {
 		logger.DebugError("failed to get agent console: %v", err)
 		goto ERROR
 	}

@@ -189,8 +189,7 @@ func (t *Teamserver) Profile(path string) error {
 
 	t.profile = profile.NewProfile()
 
-	err = t.profile.Parse(path)
-	if err != nil {
+	if err = t.profile.Parse(path); err != nil {
 		logger.SetStdOut(os.Stderr)
 		logger.Error("profile parsing error: %v", colors.Red(err))
 		return err

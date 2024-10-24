@@ -1,9 +1,11 @@
 package api
 
 import (
+	"Havoc/pkg"
 	"Havoc/pkg/cert"
 	"Havoc/pkg/colors"
 	"Havoc/pkg/logger"
+	"Havoc/pkg/utils"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -29,40 +31,8 @@ const (
 	UserStatusOnline  = 1
 )
 
-type HavocInterface interface {
-	UserAuthenticate(username, password string) bool
-	UserLogin(token string, login any, socket *websocket.Conn)
-	UserLogoutByToken(user string) error
-	UserNameByToken(token string) (string, error)
-	UserStatus(username string) int
-
-	ListenerStart(name, protocol string, options map[string]any) error
-	ListenerStop(name string) error
-	ListenerRestart(name string) error
-	ListenerRemove(name string) error
-	ListenerEvent(protocol string, event map[string]any) (map[string]any, error)
-	ListenerConfig(name string) (map[string]any, error)
-	ListenerEdit(name string, config map[string]any) error
-	ListenerList() []map[string]string
-
-	AgentInitialize(uuid, plugin, status, note string, data map[string]any) error
-	AgentData(uuid string) (map[string]any, error)
-	AgentExists(uuid string) bool
-	AgentType(uuid string) (string, error)
-	AgentRemove(uuid string) error
-	AgentList() []string
-	AgentGenerate(implant string, config map[string]any) (string, []byte, map[string]any, error)
-	AgentExecute(uuid string, data map[string]any, wait bool) (map[string]any, error)
-	AgentNote(uuid string) (string, error)
-	AgentSetNote(uuid string, note string) error
-	AgentStatus(uuid string) (string, error)
-	AgentSetStatus(uuid string, status string) error
-
-	DatabaseAgentConsole(uuid string) ([]map[string]any, error)
-}
-
 type ServerApi struct {
-	Engine *gin.Engine
+	engine *gin.Engine
 
 	// ssl structure containing the path to
 	// the generated ssl cert and key file
@@ -71,11 +41,10 @@ type ServerApi struct {
 		key  string
 	}
 
-	// havoc interface
-	// to interact with some functions to
-	// add/query/remove objects and data
-	// to from the teamserver
-	havoc HavocInterface
+	// havoc core interface
+	// to interact with some functions to add, query,
+	// remove objects and data to from the teamserver
+	pkg.IHavocCore
 
 	// wait queue for websockets to send
 	// the access token to register the
@@ -83,46 +52,47 @@ type ServerApi struct {
 	tokens sync.Map
 }
 
-func NewServerApi(teamserver HavocInterface) (*ServerApi, error) {
-	var api = new(ServerApi)
-
+func init() {
 	gin.SetMode(gin.ReleaseMode)
+}
 
-	api.havoc = teamserver
-	api.Engine = gin.New()
+func NewServerApi(havoc pkg.IHavocCore) (*ServerApi, error) {
+	var api = &ServerApi{
+		IHavocCore: havoc,
+		engine:     gin.New(),
+	}
 
-	//
-	// set api endpoints
-	//
-	api.Engine.POST("/api/login", api.login)
+	// login & logout endpoint
+	api.engine.POST("/api/login", api.login)
+	api.engine.POST("/api/logout", api.logout)
 
-	//
 	// listeners endpoints
-	//
-	api.Engine.POST("/api/listener/list", api.listenerList)
-	api.Engine.POST("/api/listener/start", api.listenerStart)
-	api.Engine.POST("/api/listener/stop", api.listenerStop)
-	api.Engine.POST("/api/listener/restart", api.listenerRestart)
-	api.Engine.POST("/api/listener/remove", api.listenerRemove)
-	api.Engine.POST("/api/listener/edit", api.listenerEdit)
-	api.Engine.POST("/api/listener/event", api.listenerEvent)
-	api.Engine.POST("/api/listener/config", api.listenerConfig)
+	api.engine.POST("/api/listener/list", api.listenerList)
+	api.engine.POST("/api/listener/start", api.listenerStart)
+	api.engine.POST("/api/listener/stop", api.listenerStop)
+	api.engine.POST("/api/listener/restart", api.listenerRestart)
+	api.engine.POST("/api/listener/remove", api.listenerRemove)
+	api.engine.POST("/api/listener/edit", api.listenerEdit)
+	api.engine.POST("/api/listener/event", api.listenerEvent)
+	api.engine.POST("/api/listener/config", api.listenerConfig)
 
-	//
 	// agent endpoints
-	//
-	api.Engine.POST("/api/agent/list", api.agentList)
-	api.Engine.POST("/api/agent/build", api.agentBuild)
-	api.Engine.POST("/api/agent/execute", api.agentExecute)
-	api.Engine.POST("/api/agent/note", api.agentNote)
-	api.Engine.POST("/api/agent/console", api.agentConsole)
-	api.Engine.POST("/api/agent/remove", api.agentRemove)
-	api.Engine.POST("/api/agent/hide", api.agentHide)
+	api.engine.POST("/api/agent/list", api.agentList)
+	api.engine.POST("/api/agent/build", api.agentBuild)
+	api.engine.POST("/api/agent/execute", api.agentExecute)
+	api.engine.POST("/api/agent/note", api.agentNote)
+	api.engine.POST("/api/agent/console", api.agentConsole)
+	api.engine.POST("/api/agent/remove", api.agentRemove)
+	api.engine.POST("/api/agent/hide", api.agentHide)
+
+	// plugin api endpoints
+	api.engine.POST("/api/plugin/list", api.pluginList)
+	api.engine.POST("/api/plugin/file", api.pluginFile)
 
 	//
 	// websocket event endpoint
 	//
-	api.Engine.GET("/api/event", api.event)
+	api.engine.GET("/api/event", api.event)
 
 	return api, nil
 }
@@ -135,7 +105,7 @@ func (api *ServerApi) Start(host, port string) {
 	logger.Info("starting server on %v", colors.BlueUnderline("https://"+host+":"+port))
 
 	// start the api server
-	if err = api.Engine.RunTLS(host+":"+port, api.ssl.cert, api.ssl.key); err != nil {
+	if err = api.engine.RunTLS(host+":"+port, api.ssl.cert, api.ssl.key); err != nil {
 		logger.Error("Failed to start webserver: " + err.Error())
 		return
 	}
@@ -222,17 +192,14 @@ func (api *ServerApi) login(ctx *gin.Context) {
 	}
 
 	// get username from login request
-	switch login["username"].(type) {
-	case string:
-		user = login["username"].(string)
-	default:
-		logger.DebugError("Failed retrieve username: invalid type")
+	if user, err = utils.MapKey[string](login, "username"); err != nil {
+		logger.DebugError("failed to retrieve username: " + err.Error())
 		goto ERROR
 	}
 
 	// check if the specified user
 	// is already active/online
-	if api.havoc.UserStatus(user) == UserStatusOnline {
+	if api.UserStatus(user) == UserStatusOnline {
 		ctx.JSON(http.StatusUnauthorized, gin.H{
 			"error": "user is already online",
 		})
@@ -240,16 +207,13 @@ func (api *ServerApi) login(ctx *gin.Context) {
 	}
 
 	// get password from login request
-	switch login["password"].(type) {
-	case string:
-		pass = login["password"].(string)
-	default:
-		logger.DebugError("Failed retrieve password: invalid type")
+	if pass, err = utils.MapKey[string](login, "password"); err != nil {
+		logger.DebugError("failed to retrieve username: " + err.Error())
 		goto ERROR
 	}
 
 	// check if we can authenticate the user
-	if !api.havoc.UserAuthenticate(user, pass) {
+	if !api.UserAuthenticate(user, pass) {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
@@ -266,6 +230,10 @@ func (api *ServerApi) login(ctx *gin.Context) {
 
 ERROR:
 	ctx.AbortWithStatus(http.StatusInternalServerError)
+}
+
+func (api *ServerApi) logout(ctx *gin.Context) {
+
 }
 
 // handleEventClient
@@ -311,11 +279,8 @@ func (api *ServerApi) handleEventClient(socket *websocket.Conn) {
 	}
 
 	// get token from request
-	switch data["token"].(type) {
-	case string:
-		token = data["token"].(string)
-	default:
-		logger.DebugError("failed retrieve token: invalid type")
+	if token, err = utils.MapKey[string](data, "token"); err != nil {
+		logger.DebugError("failed retrieving token: " + err.Error())
 		goto ERROR
 	}
 
@@ -327,7 +292,7 @@ func (api *ServerApi) handleEventClient(socket *websocket.Conn) {
 
 	// by now the client was successfully authenticated
 	// we're going to register the user to the teamserver
-	api.havoc.UserLogin(token, login, socket)
+	api.UserLogin(token, login, socket)
 
 	// this loop is just there to check the state of the connection
 	// and if the client somehow disconnected from the connection.
@@ -344,7 +309,7 @@ func (api *ServerApi) handleEventClient(socket *websocket.Conn) {
 
 		// log out the connected user client and send
 		// a broadcast event to every connected client
-		if err = api.havoc.UserLogoutByToken(token); err != nil {
+		if err = api.UserLogoutByToken(token); err != nil {
 			logger.DebugError("failed to logout user by token: %v", err)
 		}
 
@@ -381,6 +346,7 @@ func (api *ServerApi) tokenUser(token string) (string, bool) {
 		val   any
 		login map[string]any
 		ok    bool
+		err   error
 	)
 
 	// check if is inside the tokens map
@@ -392,12 +358,9 @@ func (api *ServerApi) tokenUser(token string) (string, bool) {
 	login = val.(map[string]any)
 
 	// get name from agent request
-	switch login["username"].(type) {
-	case string:
-		user = login["username"].(string)
-	default:
-		logger.DebugError("Failed retrieve login username: invalid type")
-		return user, false
+	if user, err = utils.MapKey[string](login, "username"); err != nil {
+		logger.DebugError("failed retrieve login username: %v", err)
+		return "", false
 	}
 
 	return user, true
