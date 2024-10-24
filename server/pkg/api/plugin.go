@@ -7,6 +7,11 @@ import (
 )
 
 func (api *ServerApi) pluginList(ctx *gin.Context) {
+	if !api.sanityCheck(ctx) {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
 	logger.Debug("got request on /api/plugin/list")
 
 	ctx.JSON(http.StatusOK, api.PluginList())
