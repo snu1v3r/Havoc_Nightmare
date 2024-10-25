@@ -58,6 +58,10 @@ public:
         const QString& path
     ) -> void;
 
+    auto processPlugins(
+        void
+    ) -> void;
+
 signals:
     auto SignalConsoleWrite(
         const QString& text

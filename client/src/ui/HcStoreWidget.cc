@@ -249,8 +249,6 @@ HcStoreWidget::HcStoreWidget( QWidget* parent ) : QWidget( parent ) {
         PluginViewStack->setCurrentIndex( item->listWidget()->row( item ) );
     });
 
-    PluginWorker.Thread->start();
-
     QMetaObject::connectSlotsByName( this );
 }
 

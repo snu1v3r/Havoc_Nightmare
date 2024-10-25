@@ -88,6 +88,7 @@ private:
     HcWorker<HcEventWorker>     Events;
     HcWorker<HcHeartbeatWorker> Heartbeat;
     HcWorker<HcMetaWorker>      MetaWorker;
+    HcWorker<HcMetaWorker>      PluginWorker;
 
     std::vector<json>          listeners = {};
     std::vector<NamedObject>   protocols = {};
@@ -247,6 +248,10 @@ public:
     auto ScriptLoad(
         const std::string& path
     ) const -> void;
+
+    auto metaPlugins()   -> void;
+    auto metaAgents()    -> void;
+    auto metaListeners() -> void;
 
 Q_SIGNALS:
     /* signals */

@@ -45,7 +45,7 @@ type IHavocCore interface {
 	AgentRegisterType(name string, agent map[string]any) error
 
 	PluginList() []map[string]any
-	PluginFile(name, file string) ([]byte, error)
+	PluginResource(name, resource string) ([]byte, error)
 
 	DatabaseAgentConsole(uuid string) ([]map[string]any, error)
 }

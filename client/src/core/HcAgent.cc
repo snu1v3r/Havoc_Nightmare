@@ -142,10 +142,12 @@ auto HcAgent::initialize() -> bool {
     console->setInputLabel( ">>>" );
     console->LabelHeader->setFixedHeight( 0 );
 
-    for ( int i = 0; i < HcAgentCompletionList->at( type ).size(); i++ ) {
-        auto [command, description] = HcAgentCompletionList->at( type ).at( i );
+    if ( ! HcAgentCompletionList->empty() ) {
+        for ( int i = 0; i < HcAgentCompletionList->at( type ).size(); i++ ) {
+            auto [command, description] = HcAgentCompletionList->at( type ).at( i );
 
-        console->addCompleteCommand( command, description );
+            console->addCompleteCommand( command, description );
+        }
     }
 
     //

@@ -49,6 +49,8 @@ auto HcHeartbeatWorker::updateHeartbeats() -> void
         auto hours   = QDateTime::fromSecsSinceEpoch( diff ).toString( "h" );
         auto days    = QDateTime::fromSecsSinceEpoch( diff ).toString( "d" );
 
+        // spdlog::debug( "{} : {}", last.toString().toStdString(), current.toString().toStdString() );
+
         //
         // update the table value
         //

@@ -63,16 +63,13 @@ HavocClient::HavocClient() {
     spdlog::set_pattern( "[%T %^%l%$] %v" );
     spdlog::info( "Havoc Framework [{} :: {}]", HAVOC_VERSION, HAVOC_CODENAME );
 
-    /* enabled debug messages */
-    spdlog::set_level( spdlog::level::debug );
-
     /* TODO: read this from the config file */
     const auto family = "Monospace";
     const auto size   = 9;
 
 #ifdef Q_OS_MAC
     //
-    // orignal fix and credit: https://github.com/HavocFramework/Havoc/pull/466/commits/8b75de9b4632a266badf64e1cc22e57cc55a5b7c
+    // original fix and credit: https://github.com/HavocFramework/Havoc/pull/466/commits/8b75de9b4632a266badf64e1cc22e57cc55a5b7c
     //
     QApplication::setStyle( "Fusion" );
 #endif
@@ -103,6 +100,17 @@ auto HavocClient::Main(
     auto Result    = httplib::Result();
     auto Response  = json{};
     auto Error     = std::string( "Failed to send login request: " );
+
+    //
+    // check if we have specified the --debug/-d
+    // flag to enable debug messages and logs
+    //
+    if ( argc >= 2 ) {
+        if ( ( strcmp( argv[ 1 ], "--debug" ) == 0 ) || ( strcmp( argv[ 1 ], "-d" ) == 0 ) ) {
+            /* enabled debug messages */
+            spdlog::set_level( spdlog::level::debug );
+        }
+    }
 
     /* get provided creds */
     auto data = Connector->start();
@@ -214,24 +222,6 @@ auto HavocClient::Main(
     // setup Python thread
     //
     PyEngine = new HcPyEngine();
-
-    //
-    // load the registered scripts
-    //
-    if ( Config.contains( "scripts" ) && Config.at( "scripts" ).is_table() ) {
-        auto scripts_tbl = Config.at( "scripts" ).as_table();
-
-        if ( scripts_tbl.contains( "files" ) && scripts_tbl.at( "files" ).is_array() ) {
-            for ( const auto& file : scripts_tbl.at( "files" ).as_array() ) {
-                if ( ! file.is_string() ) {
-                    spdlog::error( "configuration scripts file value is not an string" );
-                    continue;
-                }
-
-                ScriptLoad( file.as_string() );
-            }
-        }
-    }
 
     //
     // set up the event thread and connect to the
@@ -362,6 +352,8 @@ auto HavocClient::Protocols() -> std::vector<std::string> {
 
 auto HavocClient::SetupThreads() -> void {
     //
+    // HcEventWorker thread
+    //
     // now set up the event thread and dispatcher
     //
     Events.Thread = new QThread;
@@ -373,14 +365,7 @@ auto HavocClient::SetupThreads() -> void {
     connect( Events.Worker, &HcEventWorker::socketClosed, this, &HavocClient::eventClosed );
 
     //
-    // fire up the even thread that is going to
-    // process events and emit signals to the main gui thread
-    //
-    // NOTE: manually starting the thread is no longer needed as it is going to
-    //       be started and triggered once the meta worker thread has finished running
-    //
-    // Events.Thread->start();
-
+    // HcHeartbeatWorker thread
     //
     // start the heartbeat worker thread
     //
@@ -397,13 +382,24 @@ auto HavocClient::SetupThreads() -> void {
     Heartbeat.Thread->start();
 
     //
-    // start the heartbeat worker thread
+    // HcMetaWorker thread
+    //
+    // start the meta worker to pull listeners and agent sessions thread
     //
     MetaWorker.Thread = new QThread;
     MetaWorker.Worker = new HcMetaWorker;
     MetaWorker.Worker->moveToThread( MetaWorker.Thread );
 
     connect( MetaWorker.Thread, &QThread::started, MetaWorker.Worker, &HcMetaWorker::run );
+    connect( MetaWorker.Worker, &HcMetaWorker::Finished, this, [&](){
+        //
+        // only start the event worker once the meta worker finished
+        // pulling all the listeners, agents, etc. from the server
+        //
+        spdlog::info( "MetaWorker finished" );
+        Gui->renderWindow();
+        Events.Thread->start();
+    } );
 
     //
     // connect methods to add listeners, agents, etc. to the user interface (ui)
@@ -413,15 +409,51 @@ auto HavocClient::SetupThreads() -> void {
     connect( MetaWorker.Worker, &HcMetaWorker::AddAgentConsole, Gui, &HcMainWindow::AgentConsole );
 
     //
-    // only start the event worker once the meta worker finished
-    // pulling all the listeners, agents, etc. from the server
+    // HcMetaWorker thread
     //
-    connect( MetaWorker.Worker, &HcMetaWorker::eventWorkerRun, this, [&](){
-        Gui->renderWindow();
-        Events.Thread->start();
-    } );
+    // start the plugin worker to pull and register
+    // client plugin scripts to the local file system
+    //
+    PluginWorker.Thread = new QThread;
+    PluginWorker.Worker = new HcMetaWorker( true );
+    PluginWorker.Worker->moveToThread( PluginWorker.Thread );
 
-    MetaWorker.Thread->start();
+    connect( PluginWorker.Thread, &QThread::started,  PluginWorker.Worker, &HcMetaWorker::run );
+    connect( PluginWorker.Worker, &HcMetaWorker::Finished, this, [&]() {
+        spdlog::debug( "PluginWorker finished" );
+
+        //
+        // start the plugin worker of the store to load up all the
+        // plugins from the local file system that we just pulled
+        //
+        Gui->PageScripts->processPlugins();
+
+        //
+        // load the registered scripts
+        //
+        if ( Config.contains( "scripts" ) && Config.at( "scripts" ).is_table() ) {
+            auto scripts_tbl = Config.at( "scripts" ).as_table();
+
+            if ( scripts_tbl.contains( "files" ) && scripts_tbl.at( "files" ).is_array() ) {
+                for ( const auto& file : scripts_tbl.at( "files" ).as_array() ) {
+                    if ( ! file.is_string() ) {
+                        spdlog::error( "configuration scripts file value is not an string" );
+                        continue;
+                    }
+
+                    ScriptLoad( file.as_string() );
+                }
+            }
+        }
+
+        //
+        // now start up the meta worker to
+        // pull the listeners and agent sessions
+        //
+        MetaWorker.Thread->start();
+    });
+
+    PluginWorker.Thread->start();
 }
 
 auto HavocClient::AddBuilder(

@@ -87,7 +87,7 @@ func NewServerApi(havoc pkg.IHavocCore) (*ServerApi, error) {
 
 	// plugin api endpoints
 	api.engine.POST("/api/plugin/list", api.pluginList)
-	api.engine.POST("/api/plugin/file", api.pluginFile)
+	api.engine.POST("/api/plugin/resource", api.pluginResource)
 
 	//
 	// websocket event endpoint
@@ -320,6 +320,8 @@ ERROR:
 	socket.Close()
 }
 
+// sanityCheck
+// checks if the request is coming form a valid client
 func (api *ServerApi) sanityCheck(ctx *gin.Context) bool {
 	var (
 		token string

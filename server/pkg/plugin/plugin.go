@@ -53,6 +53,7 @@ type Plugin struct {
 	Version   string
 	Author    string
 	Resources []string
+	Path      string
 	Data      map[string]any
 
 	// the loaded plugin interface that are callable
@@ -143,7 +144,7 @@ func (system *System) RegisterPlugin(path string) (*Plugin, error) {
 
 	// add plugin to the internal sync
 	// map and make it available
-	if ext, err = system.AddPlugin(register, lookup); err != nil {
+	if ext, err = system.AddPlugin(path, register, lookup); err != nil {
 		return nil, err
 	}
 
@@ -153,7 +154,7 @@ func (system *System) RegisterPlugin(path string) (*Plugin, error) {
 // AddPlugin the registered plugin to see if there
 // wasn't given any faulty or lacking info and
 // creates a havoc Plugin object
-func (system *System) AddPlugin(register map[string]any, inter any) (*Plugin, error) {
+func (system *System) AddPlugin(path string, register map[string]any, inter any) (*Plugin, error) {
 	var (
 		ext = new(Plugin)
 		err error
@@ -162,6 +163,8 @@ func (system *System) AddPlugin(register map[string]any, inter any) (*Plugin, er
 	if len(register) == 0 {
 		return nil, errors.New("register is empty")
 	}
+
+	ext.Path = path
 
 	if ext.Name, err = utils.MapKey[string](register, "name"); err != nil {
 		return nil, err
@@ -195,7 +198,7 @@ func (system *System) AddPlugin(register map[string]any, inter any) (*Plugin, er
 		return nil, err
 	}
 
-	// add the ext to the sync map
+	// add the plugin to the sync map
 	system.loaded.Store(ext.Name, ext)
 
 	return ext, nil

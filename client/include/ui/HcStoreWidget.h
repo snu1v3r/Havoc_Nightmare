@@ -54,12 +54,12 @@ private:
     QStackedWidget*          PluginViewStack;
     std::vector<PluginView*> Plugins;
 
+public:
     struct {
         QThread*             Thread;
         HcStorePluginWorker* Worker;
     } PluginWorker;
 
-public:
     explicit HcStoreWidget( QWidget* parent = nullptr );
 
     auto AddPlugin(
