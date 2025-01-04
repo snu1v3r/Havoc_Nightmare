@@ -7,3 +7,6 @@
 [submodule "client/external/toml"]
 	path = client/external/toml
 	url = https://github.com/ToruNiina/toml11
+[submodule "client/Modules"]
+	path = client/Modules
+	url = https://github.com/HavocFramework/Modules
