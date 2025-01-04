@@ -28,10 +28,12 @@ var (
 // init all flags
 func init() {
 	HavocCli.CompletionOptions.DisableDefaultCmd = true
-
 	// server flags
+	Home, _:= os.UserHomeDir()
+	Persist := Home + "/.havoc/server"
 	CobraServer.Flags().SortFlags = false
 	CobraServer.Flags().StringVarP(&flags.Server.Profile, "profile", "", "", "set havoc teamserver profile")
+	CobraServer.Flags().StringVarP(&flags.Server.Persist, "persist","",Persist,"folder to store persistent data")
 	CobraServer.Flags().BoolVarP(&flags.Server.Debug, "debug", "", false, "enable debug mode")
 	CobraServer.Flags().BoolVarP(&flags.Server.DebugDev, "debug-dev", "", false, "enable debug mode for developers (compiles the agent with the debug mode/macro enabled)")
 	CobraServer.Flags().BoolVarP(&flags.Server.SendLogs, "send-logs", "", false, "the agent will send logs over http(s) to the teamserver")

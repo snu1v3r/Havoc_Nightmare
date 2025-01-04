@@ -43,6 +43,7 @@ type serverFlags struct {
 	Port string
 
 	Profile  string
+	Persist  string
 	Verbose  bool
 	Debug    bool
 	DebugDev bool
