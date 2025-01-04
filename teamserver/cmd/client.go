@@ -13,7 +13,7 @@ var CobraClient = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		startMenu()
 
-		client := exec.Command("client/Havoc", args...)
+		client := exec.Command("havoc-client", args...)
 		client.Stdout = os.Stdout
 		client.Stderr = os.Stderr
 
