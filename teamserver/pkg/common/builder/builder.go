@@ -24,7 +24,7 @@ import (
 
 // TODO: move to agent package
 const (
-	PayloadDir  = "payloads"
+	PayloadDir  = "../share/havoc/payloads"
 	PayloadName = "demon"
 )
 

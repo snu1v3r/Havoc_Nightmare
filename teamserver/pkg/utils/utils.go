@@ -11,6 +11,7 @@ import (
     "strings"
     "time"
     "unsafe"
+    "path/filepath"
 
     "Havoc/pkg/logger"
 )
@@ -107,12 +108,12 @@ func GetTeamserverPath() string {
         err  error
     )
 
-    if Path, err = os.Getwd(); err != nil {
+    if Path, err = os.Executable(); err != nil {
         logger.Error("Couldn't get current working directory of teamserver: " + err.Error())
         return ""
     }
 
-    return Path
+    return filepath.Dir(Path)
 }
 
 /*func GetFieldName(fieldPinter interface{}) (name string) {

@@ -49,20 +49,15 @@ func (t *Teamserver) SetServerFlags(flags TeamserverFlags) {
 	t.Flags = flags
 }
 
-func (t *Teamserver) Start() {
+func (t *Teamserver) Start(TeamserverPath string) {
 	logger.Debug("Starting teamserver...")
 	var (
 		ServerFinished      chan bool
 		TeamserverWs        string
-		TeamserverPath, err = os.Getwd()
 		ListenerCount       int
+		err		    error
 		KillDate            int64
 	)
-
-	if err != nil {
-		logger.Error("Couldn't get the current directory: " + err.Error())
-		return
-	}
 
 	if t.Flags.Server.Host == "" {
 		t.Flags.Server.Host = t.Profile.ServerHost()
@@ -208,7 +203,7 @@ func (t *Teamserver) Start() {
 
 	/* now load up our db or start a new one if none exist */
 	DBPath := t.DB.Path()
-	if t.DB, err = db.DatabaseNew(TeamserverPath + "/" + DBPath); err != nil {
+	if t.DB, err = db.DatabaseNew(DBPath); err != nil {
 		logger.SetStdOut(os.Stderr)
 		logger.Error("Failed to create or open a database: " + err.Error())
 		return
@@ -626,6 +621,7 @@ func (t *Teamserver) handleRequest(id string) {
 func (t *Teamserver) SetProfile(path string) {
 	t.Profile = profile.NewProfile()
 	logger.LoggerInstance.STDERR = os.Stderr
+	logger.SetStdOut(os.Stderr)
 	err := t.Profile.SetProfile(path, t.Flags.Server.Default)
 	if err != nil {
 		logger.SetStdOut(os.Stderr)

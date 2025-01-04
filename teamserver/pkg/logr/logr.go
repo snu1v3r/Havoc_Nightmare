@@ -25,19 +25,18 @@ func NewLogr(Server, Path string) *Logr {
 	)
 
 	logr.ServerPath = Server
-	logr.Path = Server + "/" + Path
-	logr.ListenerPath = Path + "/listener"
-	logr.AgentPath = Path + "/agents"
-
-	if _, err = os.Stat(Path); os.IsNotExist(err) {
-		if err = os.MkdirAll(Path, os.ModePerm); err != nil {
+	logr.Path = Server + Path
+	logr.ListenerPath = logr.Path + "/listener"
+	logr.AgentPath = logr.Path + "/agents"
+	if _, err = os.Stat(logr.Path); os.IsNotExist(err) {
+		if err = os.MkdirAll(logr.Path, os.ModePerm); err != nil {
 			logger.Error("Failed to create Logr folder: " + err.Error())
 			return nil
 		}
 	} else {
-		err = os.RemoveAll(Path)
+		err = os.RemoveAll(logr.Path)
 		if err == nil {
-			if err = os.MkdirAll(Path, os.ModePerm); err != nil {
+			if err = os.MkdirAll(logr.Path, os.ModePerm); err != nil {
 				logger.Error("Failed to create Logr folder: " + err.Error())
 				return nil
 			}
