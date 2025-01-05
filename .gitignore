@@ -29,5 +29,6 @@ data/
 
 # ignore client directories
 client/Build/
+client/build/
 client/Havoc
 client/Modules/
