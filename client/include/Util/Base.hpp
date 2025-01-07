@@ -1,6 +1,7 @@
 #ifndef HAVOC_BASE_HPP
 #define HAVOC_BASE_HPP
 
+#include <filesystem>
 #include <spdlog/spdlog.h>
 
 #include <QString>
@@ -41,5 +42,17 @@ auto CurrentDateTime(
 auto CurrentTime(
         void
 ) -> QString;
+
+auto DataPath(
+    std::string
+) -> std::string;
+
+auto ApplicationPath(
+    void
+) -> std::string;
+
+auto HomePath(
+    void
+) -> std::string;
 
 #endif

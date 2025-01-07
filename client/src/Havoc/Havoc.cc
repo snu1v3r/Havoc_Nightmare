@@ -15,8 +15,9 @@ HavocSpace::Havoc::Havoc( QMainWindow* w )
         HavocNamespace::CodeName
     );
 
+
     this->HavocMainWindow = w;
-    this->dbManager = new HavocSpace::DBManager( "data/client.db", DBManager::CreateSqlFile );
+    this->dbManager = new HavocSpace::DBManager( DataPath("client.db").c_str(), DBManager::CreateSqlFile );
 }
 
 void HavocSpace::Havoc::Init( int argc, char** argv )
@@ -45,7 +46,10 @@ void HavocSpace::Havoc::Init( int argc, char** argv )
     }
 
     if ( Path.empty() ) {
-        Path = "client/config.toml";
+        Path = HomePath();
+        Path.append("/.havoc/client/");
+        std::filesystem::current_path(Path.c_str());
+        Path.append("/.havoc/client/config.toml");
     }
 
     if ( ! QFile::exists( Path.c_str() ) ) {

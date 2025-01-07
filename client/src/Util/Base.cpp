@@ -1,5 +1,7 @@
 #include <Util/Base.hpp>
 
+#include <QFileInfo>
+
 auto FileRead( const QString& FilePath ) -> QByteArray
 {
     auto Content = QByteArray( );
@@ -195,6 +197,44 @@ auto CurrentTime(
     void
 ) -> QString {
     return ( QTime::currentTime().toString( "hh:mm:ss" ) );
+}
+
+auto ApplicationPath(
+    void
+) -> std::string {
+    std::string filename = std::filesystem::canonical("/proc/self/exe").string();
+    std::filesystem::path p(filename);
+    std::string path = p.parent_path();
+    return (path);
+}
+
+auto DataPath(
+    std::string filename
+) -> std::string {
+    auto exists = false;
+    std::string TmpPath = HomePath();
+    TmpPath.append("/.havoc/client/data");
+
+    if  ( ! QFileInfo::exists( TmpPath.c_str() ) ) {
+        if (std::filesystem::create_directories(TmpPath.c_str())) {
+            spdlog::info("Data path is created");
+        } else {
+            spdlog::error("Couldn't create data path");
+        }
+    }
+    TmpPath.append("/");
+    TmpPath.append(filename);
+    return (TmpPath);
+}
+
+auto HomePath(
+    void
+) -> std::string {
+    const char *homedir;
+    if ((homedir = getenv("HOME")) == NULL) {
+        spdlog::error( "couldn't find $HOME environment");
+    }
+    return (std::string(homedir));
 }
 
 auto GrayScale(

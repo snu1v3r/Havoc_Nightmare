@@ -154,7 +154,9 @@ bool Store::AddScript( QString Path )
 
     if ( Script != nullptr ) {
         if ( ! Script.isEmpty() ) {
+            spdlog::info(Script.toStdString().c_str());
             Return = PyRun_SimpleStringFlags( Script.toStdString().c_str(), NULL );
+            spdlog::error("just after python");
             if ( Return == -1 ) {
                 spdlog::error( "Failed to run script: {}", path );
             } else {
@@ -183,11 +185,11 @@ void Store::installScript(int position)
     QString author = jsonObj.value("author").toString();
 
     QString currentPath = QDir::currentPath();
-    QDir extension_path(QString("./data/extensions"));
-
+    QString extensionPath = QDir::homePath().append(QString("/.havoc/client/data/extensions"));
+    QDir extension_path(extensionPath);
     if (!extension_path.exists()) {
-        QDir tmp_dir(currentPath);
-        tmp_dir.mkpath(QString("./data/extensions"));
+        extension_path.mkpath(extensionPath);
+        spdlog::info( "Created extensions path");
     }
     int is_gist = url.indexOf(QString("gist.github.com"));
     if (is_gist != -1) {
@@ -195,7 +197,7 @@ void Store::installScript(int position)
         QString github_hash = urlParts.last();
 
         QString downloadURL = gistUrl.arg(author, github_hash, entrypoint);
-        QString pathScript = QString("%1/data/extensions/%2").arg(currentPath).arg(entrypoint);
+        QString pathScript = QString("%1/%2").arg(extensionPath).arg(entrypoint);
         QString command = QString("wget %1 -O %2").arg(downloadURL).arg(pathScript);
 
         // Yes there is a command injection vulnerability here. Now this is not the best
@@ -210,10 +212,11 @@ void Store::installScript(int position)
     } else { // Must be a repo then and not a gist ^^ now we can be happy for that entrypoint var
         QStringList urlParts = url.split('/');
         QString repo_name = urlParts.last();
-        QString pathScript = QString("%1/data/extensions/%2/%3").arg(currentPath).arg(repo_name).arg(entrypoint);
-        QString command = QString("git clone --recurse-submodules --remote-submodules %1 %2/data/extensions/%3").arg(url).arg(currentPath).arg(repo_name);
+        QString pathScript = QString("%1/%2/%3").arg(extensionPath).arg(repo_name).arg(entrypoint);
+        QString command = QString("git clone --recurse-submodules --remote-submodules %1 %2/%3").arg(url).arg(extensionPath).arg(repo_name);
 
         system(command.toUtf8().constData());
+        spdlog::info(command.toStdString().c_str());
         if ( AddScript( pathScript ) ) {
             if ( ! HavocX::Teamserver.TabSession->dbManager->CheckScript(pathScript) )
                 HavocX::Teamserver.TabSession->dbManager->AddScript(pathScript);
