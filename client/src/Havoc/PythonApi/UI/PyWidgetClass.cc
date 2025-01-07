@@ -122,9 +122,11 @@ int WidgetClass_init( PPyWidgetClass self, PyObject *args, PyObject *kwds )
     PyObject*   scrollable      = NULL;
     const char* kwdlist[]       = { "title", "scrollable", NULL };
 
+
     if ( ! PyArg_ParseTupleAndKeywords( args, kwds, "s|O", const_cast<char**>(kwdlist), &title, &scrollable ) )
         return -1;
-    AllocMov( self->title, title, strlen(title) );
+
+    AllocMov( self->title, title, strlen(title) + 1 );
 
     self->WidgetWindow->window = new QWidget();
     self->WidgetWindow->window->setWindowTitle(title);
